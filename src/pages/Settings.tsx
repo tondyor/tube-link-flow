@@ -1,88 +1,57 @@
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
-import { Textarea } from "@/components/ui/textarea";
 
 const Settings = () => {
-  const frequencies = [
-    { value: "10", label: "Каждые 10 минут (144/день)" },
-    { value: "20", label: "Каждые 20 минут (72/день)" },
-    { value: "30", label: "Каждые 30 минут (48/день)" },
-    { value: "40", label: "Каждые 40 минут (36/день)" },
-    { value: "50", label: "Каждые 50 минут (около 28/день)" },
-    { value: "60", label: "Каждый час (24/день)" },
-    { value: "120", label: "Каждые 2 часа (12/день)" },
-    { value: "360", label: "Каждые 6 часов (4/день)" },
-    { value: "720", label: "Каждые 12 часов (2/день)" },
-  ];
+  const [watermarkFile, setWatermarkFile] = useState<File | null>(null);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      setWatermarkFile(e.target.files[0]);
+    }
+  };
+
+  const handleSave = () => {
+    if (!watermarkFile) {
+      alert("Пожалуйста, загрузите видео вотермарку перед сохранением.");
+      return;
+    }
+    // Здесь будет логика сохранения файла (например, загрузка на сервер)
+    alert(`Вотермарка "${watermarkFile.name}" сохранена.`);
+  };
 
   return (
-    <div className="space-y-6 max-w-4xl">
+    <div className="max-w-2xl space-y-6">
       <h1 className="text-3xl font-bold">Настройки</h1>
       <Card>
         <CardHeader>
-          <CardTitle>График публикаций</CardTitle>
-          <CardDescription>Установите общую частоту публикаций для всех каналов.</CardDescription>
+          <CardTitle>Видео вотермарка</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent>
+          <p className="mb-4 text-muted-foreground">
+            Загрузите видео вотермарку, которая будет автоматически добавляться в конец всех видео перед публикацией на всех площадках для уникализации контента.
+          </p>
           <div>
-            <Label htmlFor="frequency">Частота публикаций</Label>
-            <Select defaultValue="60">
-              <SelectTrigger id="frequency" className="w-full sm:w-[280px]">
-                <SelectValue placeholder="Выберите частоту" />
-              </SelectTrigger>
-              <SelectContent>
-                {frequencies.map((f) => (
-                  <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Label htmlFor="watermark-upload" className="block mb-2">
+              Выберите видео файл вотермарки
+            </Label>
+            <input
+              id="watermark-upload"
+              type="file"
+              accept="video/*"
+              onChange={handleFileChange}
+              className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/80"
+            />
+            {watermarkFile && (
+              <p className="mt-2 text-sm text-green-600">Выбран файл: {watermarkFile.name}</p>
+            )}
+          </div>
+          <div className="mt-6 flex justify-end">
+            <Button onClick={handleSave}>Сохранить</Button>
           </div>
         </CardContent>
       </Card>
-      <Card>
-        <CardHeader>
-          <CardTitle>Настройки видео YouTube по умолчанию</CardTitle>
-          <CardDescription>Эти настройки будут применяться ко всем видео по умолчанию.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <Label htmlFor="title">Шаблон заголовка по умолчанию</Label>
-            <Input id="title" placeholder="например, {{telegram_post_title}}" />
-          </div>
-          <div>
-            <Label htmlFor="description">Шаблон описания по умолчанию</Label>
-            <Textarea id="description" placeholder="например, Из нашего Telegram: {{telegram_post_link}}" />
-          </div>
-          <div>
-            <Label htmlFor="tags">Теги по умолчанию</Label>
-            <Input id="tags" placeholder="технологии, новости, обновления (через запятую)" />
-          </div>
-          <div>
-            <Label htmlFor="visibility">Видимость по умолчанию</Label>
-            <Select defaultValue="private">
-              <SelectTrigger id="visibility" className="w-full sm:w-[280px]">
-                <SelectValue placeholder="Выберите видимость" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="public">Открытый доступ</SelectItem>
-                <SelectItem value="private">Ограниченный доступ</SelectItem>
-                <SelectItem value="unlisted">Доступ по ссылке</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="flex items-center space-x-2 pt-2">
-            <Switch id="made-for-kids" />
-            <Label htmlFor="made-for-kids">Это видео "для детей"?</Label>
-          </div>
-        </CardContent>
-      </Card>
-      <div className="flex justify-end">
-        <Button>Сохранить настройки</Button>
-      </div>
     </div>
   );
 };

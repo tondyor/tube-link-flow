@@ -6,11 +6,9 @@ import { Label } from "@/components/ui/label";
 import ChannelList from "@/components/ChannelList";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { useSession } from "@/context/SessionContext";
 
 interface TelegramChannel {
   id: string;
-  channel_name: string;
   channel_url: string;
 }
 
@@ -18,14 +16,12 @@ const TelegramChannels = () => {
   const [channels, setChannels] = useState<TelegramChannel[]>([]);
   const [newUrl, setNewUrl] = useState("");
   const { toast } = useToast();
-  const { user } = useSession();
 
   const fetchChannels = async () => {
-    if (!user) return;
     const { data, error } = await supabase
       .from("telegram_channels")
-      .select("id, channel_name, channel_url")
-      .eq("user_id", user.id);
+      .select("id, channel_url")
+      .order("created_at", { ascending: false });
     if (error) {
       toast({
         title: "Ошибка загрузки каналов",
@@ -39,27 +35,21 @@ const TelegramChannels = () => {
 
   useEffect(() => {
     fetchChannels();
-  }, [user]);
+  }, []);
 
   const handleAdd = async () => {
     const trimmedUrl = newUrl.trim();
-    if (!trimmedUrl) return;
-
-    if (!user) {
+    if (!trimmedUrl) {
       toast({
         title: "Ошибка",
-        description: "Пользователь не аутентифицирован",
+        description: "Введите ссылку на канал",
         variant: "destructive",
       });
       return;
     }
 
-    const channelName = trimmedUrl;
-
     const { error } = await supabase.from("telegram_channels").insert([
       {
-        user_id: user.id,
-        channel_name: channelName,
         channel_url: trimmedUrl,
       },
     ]);
@@ -97,7 +87,7 @@ const TelegramChannels = () => {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold">Каналы Telegram</h1>
+      <h1 className="text-3xl font-bold">Ссылки на Telegram каналы</h1>
       <Card>
         <CardHeader>
           <CardTitle>Добавить новый канал</CardTitle>
@@ -115,14 +105,14 @@ const TelegramChannels = () => {
               />
             </div>
             <Button className="w-full sm:w-auto" onClick={handleAdd}>
-              Добавить канал
+              Добавить ссылку
             </Button>
           </div>
         </CardContent>
       </Card>
       <Card>
         <CardHeader>
-          <CardTitle>Подключенные каналы</CardTitle>
+          <CardTitle>Добавленные ссылки</CardTitle>
         </CardHeader>
         <CardContent>
           <ChannelList

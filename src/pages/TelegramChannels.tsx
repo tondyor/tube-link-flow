@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import ChannelList from "@/components/ChannelList";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useSession } from "@/context/SessionContext";
 
 interface TelegramChannel {
   id: string;
@@ -17,9 +18,9 @@ const TelegramChannels = () => {
   const [channels, setChannels] = useState<TelegramChannel[]>([]);
   const [newUrl, setNewUrl] = useState("");
   const { toast } = useToast();
+  const { user } = useSession();
 
   const fetchChannels = async () => {
-    const user = (await supabase.auth.getUser()).data.user;
     if (!user) return;
     const { data, error } = await supabase
       .from("telegram_channels")
@@ -38,13 +39,12 @@ const TelegramChannels = () => {
 
   useEffect(() => {
     fetchChannels();
-  }, []);
+  }, [user]);
 
   const handleAdd = async () => {
     const trimmedUrl = newUrl.trim();
     if (!trimmedUrl) return;
 
-    const user = (await supabase.auth.getUser()).data.user;
     if (!user) {
       toast({
         title: "Ошибка",
@@ -54,8 +54,7 @@ const TelegramChannels = () => {
       return;
     }
 
-    // Сохраняем полный URL как channel_url, channel_name можно оставить пустым или равным URL
-    const channelName = trimmedUrl; // или "" если не нужно
+    const channelName = trimmedUrl;
 
     const { error } = await supabase.from("telegram_channels").insert([
       {
@@ -129,7 +128,7 @@ const TelegramChannels = () => {
           <ChannelList
             channels={channels.map((c) => ({
               id: c.id,
-              name: c.channel_url, // отображаем URL, а не имя
+              name: c.channel_url,
               url: c.channel_url,
             }))}
             onDelete={handleDelete}

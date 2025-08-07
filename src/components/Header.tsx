@@ -1,4 +1,4 @@
-import { Menu, Bot, Home, Send, Youtube, Settings } from "lucide-react";
+import { Menu, Bot, Home, Send, Youtube, Settings, Instagram, Video } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { NavLink } from "react-router-dom";
@@ -9,6 +9,10 @@ const Header = () => {
     { to: "/", icon: <Home className="h-5 w-5" />, label: "Панель управления" },
     { to: "/telegram", icon: <Send className="h-5 w-5" />, label: "Каналы Telegram" },
     { to: "/youtube", icon: <Youtube className="h-5 w-5" />, label: "Каналы YouTube" },
+    { to: "/tiktok-source", icon: <Video className="h-5 w-5" />, label: "Каналы TikTok" },
+    { to: "/instagram-source", icon: <Instagram className="h-5 w-5" />, label: "Каналы Instagram" },
+    { to: "/tiktok-publish", icon: <Video className="h-5 w-5" />, label: "Публикация в TikTok" },
+    { to: "/instagram-publish", icon: <Instagram className="h-5 w-5" />, label: "Публикация в Instagram" },
     { to: "/settings", icon: <Settings className="h-5 w-5" />, label: "Настройки" },
   ];
 
@@ -24,7 +28,7 @@ const Header = () => {
             <Menu className="h-6 w-6" />
           </Button>
         </SheetTrigger>
-        <SheetContent side="left" className="w-72 p-0">
+        <SheetContent side="left" className="w-72 p-0 overflow-y-auto">
            <div className="flex items-center h-16 px-6 border-b">
              <Bot className="h-8 w-8 text-primary" />
              <h1 className="ml-3 text-xl font-bold">SplitRun</h1>

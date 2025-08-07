@@ -7,6 +7,10 @@ import Layout from "./components/Layout";
 import Dashboard from "./pages/Dashboard";
 import TelegramChannels from "./pages/TelegramChannels";
 import YouTubeChannels from "./pages/YouTubeChannels";
+import TikTokSource from "./pages/TikTokSource";
+import InstagramSource from "./pages/InstagramSource";
+import TikTokPublish from "./pages/TikTokPublish";
+import InstagramPublish from "./pages/InstagramPublish";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
@@ -23,6 +27,10 @@ const App = () => (
             <Route path="/" element={<Dashboard />} />
             <Route path="/telegram" element={<TelegramChannels />} />
             <Route path="/youtube" element={<YouTubeChannels />} />
+            <Route path="/tiktok-source" element={<TikTokSource />} />
+            <Route path="/instagram-source" element={<InstagramSource />} />
+            <Route path="/tiktok-publish" element={<TikTokPublish />} />
+            <Route path="/instagram-publish" element={<InstagramPublish />} />
             <Route path="/settings" element={<Settings />} />
           </Route>
           <Route path="*" element={<NotFound />} />

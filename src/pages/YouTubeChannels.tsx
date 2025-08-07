@@ -1,12 +1,27 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import ChannelList from "@/components/ChannelList";
 
 const YouTubeChannels = () => {
   const [channels, setChannels] = useState([
-    { id: "1", name: "My Awesome Channel", email: "user@gmail.com", status: "Подключен" },
+    { id: "1", name: "My Favorite Channel", url: "https://www.youtube.com/c/MyFavoriteChannel" },
   ]);
+  const [newUrl, setNewUrl] = useState("");
+
+  const handleAdd = () => {
+    if (!newUrl.trim()) return;
+    const channelName = newUrl.split("/").pop() || newUrl;
+    const newChannel = {
+      id: Date.now().toString(),
+      name: channelName,
+      url: newUrl,
+    };
+    setChannels((prev) => [...prev, newChannel]);
+    setNewUrl("");
+  };
 
   const handleDelete = (id: string) => {
     setChannels((prev) => prev.filter((c) => c.id !== id));
@@ -17,21 +32,32 @@ const YouTubeChannels = () => {
       <h1 className="text-3xl font-bold">Каналы YouTube</h1>
       <Card>
         <CardHeader>
-          <CardTitle>Подключить новый канал</CardTitle>
-          <CardDescription>
-            Подключите свой канал YouTube, войдя в систему через Google. Для этого потребуется настройка аутентификации на бэкенде.
-          </CardDescription>
+          <CardTitle>Добавить канал</CardTitle>
+          <CardDescription>Введите ссылку на чужой канал YouTube для загрузки видео.</CardDescription>
         </CardHeader>
         <CardContent>
-          <Button>Подключить через Google</Button>
+          <div className="flex flex-col sm:flex-row items-end gap-4">
+            <div className="flex-1 w-full">
+              <Label htmlFor="youtube-url">URL канала</Label>
+              <Input
+                id="youtube-url"
+                placeholder="https://www.youtube.com/c/ChannelName"
+                value={newUrl}
+                onChange={(e) => setNewUrl(e.target.value)}
+              />
+            </div>
+            <Button className="w-full sm:w-auto" onClick={handleAdd}>
+              Добавить канал
+            </Button>
+          </div>
         </CardContent>
       </Card>
       <Card>
         <CardHeader>
-          <CardTitle>Подключенные каналы</CardTitle>
+          <CardTitle>Добавленные каналы</CardTitle>
         </CardHeader>
         <CardContent>
-          <ChannelList channels={channels} onDelete={handleDelete} showEmail showStatus />
+          <ChannelList channels={channels} onDelete={handleDelete} showUrl />
         </CardContent>
       </Card>
     </div>

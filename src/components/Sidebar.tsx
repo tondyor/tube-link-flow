@@ -1,6 +1,7 @@
 import { NavLink } from "react-router-dom";
 import { Home, Send, Youtube, Settings, Bot, Video, Instagram } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
 const Sidebar = () => {
   const contentSources = [
@@ -22,49 +23,68 @@ const Sidebar = () => {
         <Bot className="h-8 w-8 text-primary" />
         <h1 className="ml-3 text-xl font-bold">SplitRun</h1>
       </div>
-      <nav className="flex-1 p-4 space-y-4 overflow-y-auto">
-        <div>
-          <h2 className="mb-2 px-4 text-xs font-semibold uppercase text-muted-foreground">Источники контента</h2>
-          <div className="space-y-2">
-            {contentSources.map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                end
-                className={({ isActive }) =>
-                  cn(
-                    "flex items-center px-4 py-2 text-sm font-medium rounded-md",
-                    isActive ? "bg-primary text-primary-foreground" : "hover:bg-accent"
-                  )
-                }
-              >
-                {item.icon}
-                <span className="ml-3">{item.label}</span>
-              </NavLink>
-            ))}
-          </div>
+      <nav className="flex-1 p-4 overflow-y-auto">
+        <div className="mb-4">
+          <NavLink
+            to="/"
+            end
+            className={({ isActive }) =>
+              cn(
+                "flex items-center px-4 py-2 text-sm font-medium rounded-md",
+                isActive ? "bg-primary text-primary-foreground" : "hover:bg-accent"
+              )
+            }
+          >
+            <Home className="h-5 w-5" />
+            <span className="ml-3">Дашборд</span>
+          </NavLink>
         </div>
-        <div>
-          <h2 className="mb-2 px-4 text-xs font-semibold uppercase text-muted-foreground">Площадки публикации</h2>
-          <div className="space-y-2">
-            {publishingPlatforms.map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                end
-                className={({ isActive }) =>
-                  cn(
-                    "flex items-center px-4 py-2 text-sm font-medium rounded-md",
-                    isActive ? "bg-primary text-primary-foreground" : "hover:bg-accent"
-                  )
-                }
-              >
-                {item.icon}
-                <span className="ml-3">{item.label}</span>
-              </NavLink>
-            ))}
-          </div>
-        </div>
+        <Accordion type="single" collapsible className="mb-4">
+          <AccordionItem value="content-sources">
+            <AccordionTrigger>Источники контента</AccordionTrigger>
+            <AccordionContent className="space-y-1">
+              {contentSources.map((item) => (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  end
+                  className={({ isActive }) =>
+                    cn(
+                      "flex items-center px-8 py-2 text-sm font-medium rounded-md",
+                      isActive ? "bg-primary text-primary-foreground" : "hover:bg-accent"
+                    )
+                  }
+                >
+                  {item.icon}
+                  <span className="ml-3">{item.label}</span>
+                </NavLink>
+              ))}
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
+        <Accordion type="single" collapsible>
+          <AccordionItem value="publishing-platforms">
+            <AccordionTrigger>Площадки публикации</AccordionTrigger>
+            <AccordionContent className="space-y-1">
+              {publishingPlatforms.map((item) => (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  end
+                  className={({ isActive }) =>
+                    cn(
+                      "flex items-center px-8 py-2 text-sm font-medium rounded-md",
+                      isActive ? "bg-primary text-primary-foreground" : "hover:bg-accent"
+                    )
+                  }
+                >
+                  {item.icon}
+                  <span className="ml-3">{item.label}</span>
+                </NavLink>
+              ))}
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
         <div className="mt-auto">
           <NavLink
             to="/settings"

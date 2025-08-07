@@ -5,10 +5,10 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 
 const Sidebar = () => {
   const contentSources = [
-    { to: "/telegram", icon: <Send className="h-5 w-5" />, label: "Каналы Telegram" },
-    { to: "/youtube", icon: <Youtube className="h-5 w-5" />, label: "Каналы YouTube" },
-    { to: "/tiktok-source", icon: <Send className="h-5 w-5" />, label: "Каналы TikTok" },
-    { to: "/instagram-source", icon: <Send className="h-5 w-5" />, label: "Каналы Instagram" },
+    { to: "/telegram", icon: <Send className="h-5 w-5" />, label: "Каналы Telegram", disabled: false },
+    { to: "/youtube", icon: <Youtube className="h-5 w-5" />, label: "Каналы YouTube", disabled: true },
+    { to: "/tiktok-source", icon: <Send className="h-5 w-5" />, label: "Каналы TikTok", disabled: true },
+    { to: "/instagram-source", icon: <Send className="h-5 w-5" />, label: "Каналы Instagram", disabled: true },
   ];
 
   const publishingPlatforms = [
@@ -43,22 +43,32 @@ const Sidebar = () => {
           <AccordionItem value="content-sources">
             <AccordionTrigger>Источники контента</AccordionTrigger>
             <AccordionContent className="space-y-1">
-              {contentSources.map((item) => (
-                <NavLink
-                  key={item.to}
-                  to={item.to}
-                  end
-                  className={({ isActive }) =>
-                    cn(
-                      "flex items-center px-8 py-2 text-sm font-medium rounded-md",
-                      isActive ? "bg-primary text-primary-foreground" : "hover:bg-accent"
-                    )
-                  }
-                >
-                  {item.icon}
-                  <span className="ml-3">{item.label}</span>
-                </NavLink>
-              ))}
+              {contentSources.map((item) =>
+                item.disabled ? (
+                  <div
+                    key={item.to}
+                    className="flex items-center px-8 py-2 text-sm font-medium rounded-md text-muted-foreground cursor-not-allowed"
+                  >
+                    {item.icon}
+                    <span className="ml-3">{item.label}</span>
+                  </div>
+                ) : (
+                  <NavLink
+                    key={item.to}
+                    to={item.to}
+                    end
+                    className={({ isActive }) =>
+                      cn(
+                        "flex items-center px-8 py-2 text-sm font-medium rounded-md",
+                        isActive ? "bg-primary text-primary-foreground" : "hover:bg-accent"
+                      )
+                    }
+                  >
+                    {item.icon}
+                    <span className="ml-3">{item.label}</span>
+                  </NavLink>
+                )
+              )}
             </AccordionContent>
           </AccordionItem>
         </Accordion>

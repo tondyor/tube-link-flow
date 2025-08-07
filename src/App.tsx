@@ -11,6 +11,7 @@ import TikTokSource from "./pages/TikTokSource";
 import InstagramSource from "./pages/InstagramSource";
 import TikTokPublish from "./pages/TikTokPublish";
 import InstagramPublish from "./pages/InstagramPublish";
+import YouTubePublish from "./pages/YouTubePublish";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import { ChannelsProvider } from "./context/ChannelsContext";
@@ -31,6 +32,7 @@ const App = () => (
               <Route path="/youtube" element={<YouTubeChannels />} />
               <Route path="/tiktok-source" element={<TikTokSource />} />
               <Route path="/instagram-source" element={<InstagramSource />} />
+              <Route path="/youtube-publish" element={<YouTubePublish />} />
               <Route path="/tiktok-publish" element={<TikTokPublish />} />
               <Route path="/instagram-publish" element={<InstagramPublish />} />
               <Route path="/settings" element={<Settings />} />

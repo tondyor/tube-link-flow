@@ -41,8 +41,9 @@ const TelegramChannels = () => {
   }, []);
 
   const handleAdd = async () => {
-    if (!newUrl.trim()) return;
-    const channelName = newUrl.split("/").pop() || newUrl;
+    const trimmedUrl = newUrl.trim();
+    if (!trimmedUrl) return;
+
     const user = (await supabase.auth.getUser()).data.user;
     if (!user) {
       toast({
@@ -52,11 +53,15 @@ const TelegramChannels = () => {
       });
       return;
     }
+
+    // Сохраняем полный URL как channel_url, channel_name можно оставить пустым или равным URL
+    const channelName = trimmedUrl; // или "" если не нужно
+
     const { error } = await supabase.from("telegram_channels").insert([
       {
         user_id: user.id,
         channel_name: channelName,
-        channel_url: newUrl,
+        channel_url: trimmedUrl,
       },
     ]);
     if (error) {
@@ -68,7 +73,7 @@ const TelegramChannels = () => {
     } else {
       toast({
         title: "Канал добавлен",
-        description: `Канал ${channelName} успешно добавлен.`,
+        description: `Ссылка ${trimmedUrl} успешно добавлена.`,
       });
       setNewUrl("");
       fetchChannels();
@@ -124,7 +129,7 @@ const TelegramChannels = () => {
           <ChannelList
             channels={channels.map((c) => ({
               id: c.id,
-              name: c.channel_name,
+              name: c.channel_url, // отображаем URL, а не имя
               url: c.channel_url,
             }))}
             onDelete={handleDelete}

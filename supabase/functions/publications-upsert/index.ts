@@ -20,13 +20,13 @@ serve(async (req) => {
     const { platform, channel_id, content_id, content_url } = await req.json();
 
     if (!platform || !channel_id || !content_id || !content_url) {
-      return new Response(JSON.stringify({ error: "Missing required fields" }), {
+      return new Response(JSON.stringify({ error: "Отсутствуют обязательные поля" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Check if publication exists
+    // Проверяем, есть ли уже такая публикация
     const { data: existing, error: selectError } = await supabase
       .from("publications")
       .select("id")
@@ -36,22 +36,22 @@ serve(async (req) => {
       .single();
 
     if (selectError && selectError.code !== "PGRST116") {
-      // PGRST116 = no rows found, which is OK
-      return new Response(JSON.stringify({ error: "Database error", details: selectError.message }), {
+      // PGRST116 — это "строка не найдена", это нормально
+      return new Response(JSON.stringify({ error: "Ошибка базы данных", details: selectError.message }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     if (existing) {
-      // Already exists, no need to insert
-      return new Response(JSON.stringify({ message: "Publication already exists" }), {
+      // Публикация уже есть, не вставляем
+      return new Response(JSON.stringify({ message: "Публикация уже существует" }), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Insert new publication
+    // Вставляем новую публикацию
     const { error: insertError } = await supabase.from("publications").insert({
       platform,
       channel_id,
@@ -61,26 +61,26 @@ serve(async (req) => {
     });
 
     if (insertError) {
-      return new Response(JSON.stringify({ error: "Failed to insert publication", details: insertError.message }), {
+      return new Response(JSON.stringify({ error: "Ошибка вставки публикации", details: insertError.message }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Cleanup: keep only latest 1000 records
+    // Очищаем старые записи, оставляем только последние 1000
     const { error: cleanupError } = await supabase.rpc("cleanup_publications", { max_records: 1000 });
 
     if (cleanupError) {
-      // Log cleanup error but do not fail the request
-      console.error("Cleanup error:", cleanupError.message);
+      // Логируем ошибку очистки, но не прерываем работу
+      console.error("Ошибка очистки публикаций:", cleanupError.message);
     }
 
-    return new Response(JSON.stringify({ message: "Publication saved" }), {
+    return new Response(JSON.stringify({ message: "Публикация сохранена" }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
-    return new Response(JSON.stringify({ error: "Internal server error", details: (error as Error).message }), {
+    return new Response(JSON.stringify({ error: "Внутренняя ошибка сервера", details: (error as Error).message }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

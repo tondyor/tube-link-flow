@@ -2,8 +2,9 @@ import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
-import { generateAuthUrl, getTokens } from "@/lib/youtubeAuth";
 import { useToast } from "@/hooks/use-toast";
+
+const EDGE_FUNCTION_URL = "https://lvrusgtopkuuuxgdzacf.functions.supabase.co/youtube-oauth";
 
 interface YouTubeChannel {
   id: string;
@@ -16,10 +17,9 @@ const YouTubeChannels = () => {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
-  // Fetch connected YouTube channels from Supabase
   const fetchChannels = async () => {
     setLoading(true);
-    const user = supabase.auth.getUser ? (await supabase.auth.getUser()).data.user : null;
+    const user = (await supabase.auth.getUser()).data.user;
     if (!user) {
       setLoading(false);
       return;
@@ -44,7 +44,6 @@ const YouTubeChannels = () => {
     fetchChannels();
   }, []);
 
-  // Handle OAuth redirect with code
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get("code");
@@ -52,50 +51,30 @@ const YouTubeChannels = () => {
       (async () => {
         setLoading(true);
         try {
-          const tokens = await getTokens(code);
-          // Use tokens to get channel info from YouTube API
-          const res = await fetch(
-            "https://www.googleapis.com/youtube/v3/channels?part=snippet&mine=true",
-            {
-              headers: {
-                Authorization: `Bearer ${tokens.access_token}`,
-              },
-            }
-          );
-          const data = await res.json();
-          if (data.items && data.items.length > 0) {
-            const channel = data.items[0];
-            const user = (await supabase.auth.getUser()).data.user;
-            if (!user) throw new Error("User not authenticated");
+          const session = supabase.auth.getSession ? (await supabase.auth.getSession()).data.session : null;
+          if (!session) throw new Error("User not authenticated");
 
-            // Save channel info and tokens to Supabase
-            const { error } = await supabase.from("youtube_channels").upsert({
-              user_id: user.id,
-              channel_id: channel.id,
-              channel_title: channel.snippet.title,
-              access_token: tokens.access_token,
-              refresh_token: tokens.refresh_token,
-              token_expiry: tokens.expiry_date ? new Date(tokens.expiry_date) : new Date(),
-            });
-            if (error) {
-              toast({
-                title: "Ошибка сохранения канала",
-                description: error.message,
-                variant: "destructive",
-              });
-            } else {
-              toast({
-                title: "Канал подключен",
-                description: `Канал ${channel.snippet.title} успешно подключен.`,
-              });
-              fetchChannels();
-            }
-          } else {
-            toast({
-              title: "Ошибка получения информации о канале",
-              variant: "destructive",
-            });
+          const res = await fetch(EDGE_FUNCTION_URL, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${session.access_token}`,
+            },
+            body: JSON.stringify({ code }),
+          });
+
+          const data = await res.json();
+
+          if (!res.ok) {
+            throw new Error(data.error || "Ошибка подключения канала");
           }
+
+          toast({
+            title: "Канал подключен",
+            description: data.channel,
+          });
+
+          fetchChannels();
         } catch (error: any) {
           toast({
             title: "Ошибка авторизации",
@@ -104,7 +83,6 @@ const YouTubeChannels = () => {
           });
         } finally {
           setLoading(false);
-          // Clean URL
           window.history.replaceState({}, document.title, window.location.pathname);
         }
       })();
@@ -112,7 +90,10 @@ const YouTubeChannels = () => {
   }, []);
 
   const handleConnect = () => {
-    const authUrl = generateAuthUrl();
+    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+    const redirectUri = import.meta.env.VITE_GOOGLE_REDIRECT_URI;
+    const scope = encodeURIComponent("https://www.googleapis.com/auth/youtube.readonly https://www.googleapis.com/auth/youtube.force-ssl");
+    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${scope}&access_type=offline&prompt=consent`;
     window.location.href = authUrl;
   };
 

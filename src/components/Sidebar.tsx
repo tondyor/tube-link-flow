@@ -6,6 +6,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 const Sidebar = () => {
   const contentSources = [
     { to: "/telegram", icon: <Send className="h-5 w-5" />, label: "Каналы Telegram" },
+    { to: "/youtube", icon: <Youtube className="h-5 w-5" />, label: "Каналы YouTube" },
     { to: "/tiktok-source", icon: <Send className="h-5 w-5" />, label: "Каналы TikTok" },
     { to: "/instagram-source", icon: <Send className="h-5 w-5" />, label: "Каналы Instagram" },
   ];

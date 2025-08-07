@@ -8,31 +8,31 @@ import { Textarea } from "@/components/ui/textarea";
 
 const Settings = () => {
   const frequencies = [
-    { value: "10", label: "Every 10 minutes (144/day)" },
-    { value: "20", label: "Every 20 minutes (72/day)" },
-    { value: "30", label: "Every 30 minutes (48/day)" },
-    { value: "40", label: "Every 40 minutes (36/day)" },
-    { value: "50", label: "Every 50 minutes (approx. 28/day)" },
-    { value: "60", label: "Every 1 hour (24/day)" },
-    { value: "120", label: "Every 2 hours (12/day)" },
-    { value: "360", label: "Every 6 hours (4/day)" },
-    { value: "720", label: "Every 12 hours (2/day)" },
+    { value: "10", label: "Каждые 10 минут (144/день)" },
+    { value: "20", label: "Каждые 20 минут (72/день)" },
+    { value: "30", label: "Каждые 30 минут (48/день)" },
+    { value: "40", label: "Каждые 40 минут (36/день)" },
+    { value: "50", label: "Каждые 50 минут (около 28/день)" },
+    { value: "60", label: "Каждый час (24/день)" },
+    { value: "120", label: "Каждые 2 часа (12/день)" },
+    { value: "360", label: "Каждые 6 часов (4/день)" },
+    { value: "720", label: "Каждые 12 часов (2/день)" },
   ];
 
   return (
     <div className="space-y-6 max-w-4xl">
-      <h1 className="text-3xl font-bold">Settings</h1>
+      <h1 className="text-3xl font-bold">Настройки</h1>
       <Card>
         <CardHeader>
-          <CardTitle>Publication Schedule</CardTitle>
-          <CardDescription>Set the general posting frequency for all publications.</CardDescription>
+          <CardTitle>График публикаций</CardTitle>
+          <CardDescription>Установите общую частоту публикаций для всех каналов.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <Label htmlFor="frequency">Post Frequency</Label>
+            <Label htmlFor="frequency">Частота публикаций</Label>
             <Select defaultValue="60">
               <SelectTrigger id="frequency" className="w-full sm:w-[280px]">
-                <SelectValue placeholder="Select frequency" />
+                <SelectValue placeholder="Выберите частоту" />
               </SelectTrigger>
               <SelectContent>
                 {frequencies.map((f) => (
@@ -45,43 +45,43 @@ const Settings = () => {
       </Card>
       <Card>
         <CardHeader>
-          <CardTitle>Default YouTube Video Settings</CardTitle>
-          <CardDescription>These settings will be applied to all videos by default.</CardDescription>
+          <CardTitle>Настройки видео YouTube по умолчанию</CardTitle>
+          <CardDescription>Эти настройки будут применяться ко всем видео по умолчанию.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <Label htmlFor="title">Default Title Template</Label>
-            <Input id="title" placeholder="e.g., {{telegram_post_title}}" />
+            <Label htmlFor="title">Шаблон заголовка по умолчанию</Label>
+            <Input id="title" placeholder="например, {{telegram_post_title}}" />
           </div>
           <div>
-            <Label htmlFor="description">Default Description Template</Label>
-            <Textarea id="description" placeholder="e.g., From our Telegram: {{telegram_post_link}}" />
+            <Label htmlFor="description">Шаблон описания по умолчанию</Label>
+            <Textarea id="description" placeholder="например, Из нашего Telegram: {{telegram_post_link}}" />
           </div>
           <div>
-            <Label htmlFor="tags">Default Tags</Label>
-            <Input id="tags" placeholder="tech, news, updates (comma-separated)" />
+            <Label htmlFor="tags">Теги по умолчанию</Label>
+            <Input id="tags" placeholder="технологии, новости, обновления (через запятую)" />
           </div>
           <div>
-            <Label htmlFor="visibility">Default Visibility</Label>
+            <Label htmlFor="visibility">Видимость по умолчанию</Label>
             <Select defaultValue="private">
               <SelectTrigger id="visibility" className="w-full sm:w-[280px]">
-                <SelectValue placeholder="Select visibility" />
+                <SelectValue placeholder="Выберите видимость" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="public">Public</SelectItem>
-                <SelectItem value="private">Private</SelectItem>
-                <SelectItem value="unlisted">Unlisted</SelectItem>
+                <SelectItem value="public">Открытый доступ</SelectItem>
+                <SelectItem value="private">Ограниченный доступ</SelectItem>
+                <SelectItem value="unlisted">Доступ по ссылке</SelectItem>
               </SelectContent>
             </Select>
           </div>
           <div className="flex items-center space-x-2 pt-2">
             <Switch id="made-for-kids" />
-            <Label htmlFor="made-for-kids">Is this video "made for kids"?</Label>
+            <Label htmlFor="made-for-kids">Это видео "для детей"?</Label>
           </div>
         </CardContent>
       </Card>
       <div className="flex justify-end">
-        <Button>Save Settings</Button>
+        <Button>Сохранить настройки</Button>
       </div>
     </div>
   );

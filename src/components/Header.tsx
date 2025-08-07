@@ -6,10 +6,10 @@ import { cn } from "@/lib/utils";
 
 const Header = () => {
   const navItems = [
-    { to: "/", icon: <Home className="h-5 w-5" />, label: "Dashboard" },
-    { to: "/telegram", icon: <Send className="h-5 w-5" />, label: "Telegram Channels" },
-    { to: "/youtube", icon: <Youtube className="h-5 w-5" />, label: "YouTube Channels" },
-    { to: "/settings", icon: <Settings className="h-5 w-5" />, label: "Settings" },
+    { to: "/", icon: <Home className="h-5 w-5" />, label: "Панель управления" },
+    { to: "/telegram", icon: <Send className="h-5 w-5" />, label: "Каналы Telegram" },
+    { to: "/youtube", icon: <Youtube className="h-5 w-5" />, label: "Каналы YouTube" },
+    { to: "/settings", icon: <Settings className="h-5 w-5" />, label: "Настройки" },
   ];
 
   return (

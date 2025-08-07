@@ -13,33 +13,33 @@ const TelegramChannels = () => {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold">Telegram Channels</h1>
+      <h1 className="text-3xl font-bold">Каналы Telegram</h1>
       <Card>
         <CardHeader>
-          <CardTitle>Add New Channel</CardTitle>
-          <CardDescription>Enter the public URL of the Telegram channel.</CardDescription>
+          <CardTitle>Добавить новый канал</CardTitle>
+          <CardDescription>Введите публичный URL-адрес канала Telegram.</CardDescription>
         </CardHeader>
         <CardContent>
           <form className="flex flex-col sm:flex-row items-end gap-4">
             <div className="flex-1 w-full">
-              <Label htmlFor="telegram-url">Channel URL</Label>
+              <Label htmlFor="telegram-url">URL канала</Label>
               <Input id="telegram-url" placeholder="https://t.me/channel_name" />
             </div>
-            <Button className="w-full sm:w-auto">Add Channel</Button>
+            <Button className="w-full sm:w-auto">Добавить канал</Button>
           </form>
         </CardContent>
       </Card>
       <Card>
         <CardHeader>
-          <CardTitle>Connected Channels</CardTitle>
+          <CardTitle>Подключенные каналы</CardTitle>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Channel Name</TableHead>
+                <TableHead>Название канала</TableHead>
                 <TableHead>URL</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead className="text-right">Действия</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

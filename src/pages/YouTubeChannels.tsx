@@ -5,35 +5,35 @@ import { Trash2 } from "lucide-react";
 
 const YouTubeChannels = () => {
   const channels = [
-    { name: "My Awesome Channel", email: "user@gmail.com", status: "Connected" },
+    { name: "My Awesome Channel", email: "user@gmail.com", status: "Подключен" },
   ];
 
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold">YouTube Channels</h1>
+      <h1 className="text-3xl font-bold">Каналы YouTube</h1>
       <Card>
         <CardHeader>
-          <CardTitle>Connect New Channel</CardTitle>
+          <CardTitle>Подключить новый канал</CardTitle>
           <CardDescription>
-            Connect your YouTube channel by signing in with Google. This will require backend authentication to be set up.
+            Подключите свой канал YouTube, войдя в систему через Google. Для этого потребуется настройка аутентификации на бэкенде.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Button>Connect via Google</Button>
+          <Button>Подключить через Google</Button>
         </CardContent>
       </Card>
       <Card>
         <CardHeader>
-          <CardTitle>Connected Channels</CardTitle>
+          <CardTitle>Подключенные каналы</CardTitle>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Channel Name</TableHead>
+                <TableHead>Название канала</TableHead>
                 <TableHead>Email</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead>Статус</TableHead>
+                <TableHead className="text-right">Действия</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

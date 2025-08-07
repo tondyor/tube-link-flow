@@ -4,55 +4,55 @@ import { Activity, Send, Youtube, CheckCircle } from "lucide-react";
 const Dashboard = () => {
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold">Dashboard</h1>
+      <h1 className="text-3xl font-bold">Панель управления</h1>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Telegram Channels</CardTitle>
+            <CardTitle className="text-sm font-medium">Каналы Telegram</CardTitle>
             <Send className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">5</div>
-            <p className="text-xs text-muted-foreground">Connected channels</p>
+            <p className="text-xs text-muted-foreground">Подключенные каналы</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">YouTube Channels</CardTitle>
+            <CardTitle className="text-sm font-medium">Каналы YouTube</CardTitle>
             <Youtube className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">2</div>
-            <p className="text-xs text-muted-foreground">Connected channels</p>
+            <p className="text-xs text-muted-foreground">Подключенные каналы</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Scheduled Posts</CardTitle>
+            <CardTitle className="text-sm font-medium">Запланированные посты</CardTitle>
             <Activity className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">+144</div>
-            <p className="text-xs text-muted-foreground">In the next 24 hours</p>
+            <p className="text-xs text-muted-foreground">В ближайшие 24 часа</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Posts</CardTitle>
+            <CardTitle className="text-sm font-medium">Всего постов</CardTitle>
             <CheckCircle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">+1,234</div>
-            <p className="text-xs text-muted-foreground">Published since beginning</p>
+            <p className="text-xs text-muted-foreground">Опубликовано с начала</p>
           </CardContent>
         </Card>
       </div>
       <Card>
         <CardHeader>
-          <CardTitle>Recent Activity</CardTitle>
+          <CardTitle>Недавняя активность</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-muted-foreground">No recent activity to show.</p>
+          <p className="text-muted-foreground">Нет недавней активности для отображения.</p>
           {/* Placeholder for activity log */}
         </CardContent>
       </Card>

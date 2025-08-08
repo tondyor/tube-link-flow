@@ -71,8 +71,8 @@ const YouTubeConnect = () => {
     const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
     const redirectUri = import.meta.env.VITE_GOOGLE_REDIRECT_URI;
     
-    if (!clientId || !redirectUri) {
-        setError("Конфигурация Google Client не найдена. Обратитесь к администратору.");
+    if (!clientId || !redirectUri || clientId === "YOUR_GOOGLE_CLIENT_ID_HERE") {
+        setError("Ошибка конфигурации: VITE_GOOGLE_CLIENT_ID или VITE_GOOGLE_REDIRECT_URI не установлены. Скопируйте .env.example в .env, заполните значения и нажмите 'Rebuild'.");
         setLoading(false);
         return;
     }

@@ -13,6 +13,7 @@ const Sidebar = () => {
 
   const publishingPlatforms = [
     { to: "/youtube-publish", icon: <Youtube className="h-5 w-5" />, label: "Публикация на YouTube" },
+    { to: "/youtube-connect", icon: <Youtube className="h-5 w-5" />, label: "Подключить YouTube каналы" },
     { to: "/tiktok-publish", icon: <Youtube className="h-5 w-5" />, label: "Публикация в TikTok" },
     { to: "/instagram-publish", icon: <Youtube className="h-5 w-5" />, label: "Публикация в Instagram" },
   ];

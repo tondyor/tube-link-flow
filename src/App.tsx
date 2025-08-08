@@ -7,6 +7,7 @@ import Layout from "./components/Layout";
 import Dashboard from "./pages/Dashboard";
 import TelegramChannels from "./pages/TelegramChannels";
 import YouTubeChannels from "./pages/YouTubeChannels";
+import YouTubeConnect from "./pages/YouTubeConnect";
 import TikTokSource from "./pages/TikTokSource";
 import InstagramSource from "./pages/InstagramSource";
 import TikTokPublish from "./pages/TikTokPublish";
@@ -30,6 +31,7 @@ const App = () => (
               <Route path="/" element={<Dashboard />} />
               <Route path="/telegram" element={<TelegramChannels />} />
               <Route path="/youtube" element={<YouTubeChannels />} />
+              <Route path="/youtube-connect" element={<YouTubeConnect />} />
               <Route path="/tiktok-source" element={<TikTokSource />} />
               <Route path="/instagram-source" element={<InstagramSource />} />
               <Route path="/youtube-publish" element={<YouTubePublish />} />

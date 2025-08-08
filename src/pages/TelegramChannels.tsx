@@ -10,7 +10,12 @@ import { useToast } from "@/hooks/use-toast";
 interface TelegramChannel {
   id: string;
   channel_url: string;
+  channel_title?: string;
+  channel_description?: string;
+  channel_image?: string;
 }
+
+const EDGE_FUNCTION_URL = "https://lvrusgtopkuuuxgdzacf.functions.supabase.co/telegram-channel-info";
 
 const TelegramChannels = () => {
   const [channels, setChannels] = useState<TelegramChannel[]>([]);
@@ -21,7 +26,7 @@ const TelegramChannels = () => {
   const fetchChannels = async () => {
     const { data, error } = await supabase
       .from("telegram_channels")
-      .select("id, channel_url")
+      .select("id, channel_url, channel_title, channel_description, channel_image")
       .order("created_at", { ascending: false });
     if (error) {
       toast({
@@ -66,24 +71,52 @@ const TelegramChannels = () => {
       return;
     }
     setLoading(true);
-    const { error } = await supabase.from("telegram_channels").insert([
-      {
-        channel_url: trimmedUrl,
-      },
-    ]);
-    if (error) {
+    try {
+      // Запрос информации о канале
+      const resp = await fetch(EDGE_FUNCTION_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: trimmedUrl }),
+      });
+      const info = await resp.json();
+      if (!resp.ok) {
+        toast({
+          title: "Ошибка",
+          description: info.error || "Не удалось получить информацию о канале",
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
+      // Сохраняем ссылку и данные
+      const { error } = await supabase.from("telegram_channels").insert([
+        {
+          channel_url: trimmedUrl,
+          channel_title: info.title,
+          channel_description: info.description,
+          channel_image: info.image,
+        },
+      ]);
+      if (error) {
+        toast({
+          title: "Ошибка добавления канала",
+          description: error.message,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Канал добавлен",
+          description: info.title,
+        });
+        setNewUrl("");
+        fetchChannels();
+      }
+    } catch (e: any) {
       toast({
-        title: "Ошибка добавления канала",
-        description: error.message,
+        title: "Ошибка",
+        description: e.message || "Не удалось получить информацию о канале",
         variant: "destructive",
       });
-    } else {
-      toast({
-        title: "Канал добавлен",
-        description: trimmedUrl,
-      });
-      setNewUrl("");
-      fetchChannels();
     }
     setLoading(false);
   };
@@ -138,7 +171,7 @@ const TelegramChannels = () => {
           <ChannelList
             channels={channels.map((c) => ({
               id: c.id,
-              name: c.channel_url,
+              name: c.channel_title || c.channel_url,
               url: c.channel_url,
             }))}
             onDelete={handleDelete}

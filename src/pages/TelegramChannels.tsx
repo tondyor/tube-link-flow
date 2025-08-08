@@ -10,10 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 interface TelegramChannel {
   id: string;
   channel_url: string;
-  channel_title?: string;
 }
-
-const EDGE_FUNCTION_URL = "https://lvrusgtopkuuuxgdzacf.functions.supabase.co/telegram-channel-validate";
 
 const TelegramChannels = () => {
   const [channels, setChannels] = useState<TelegramChannel[]>([]);
@@ -24,7 +21,7 @@ const TelegramChannels = () => {
   const fetchChannels = async () => {
     const { data, error } = await supabase
       .from("telegram_channels")
-      .select("id, channel_url, channel_title")
+      .select("id, channel_url")
       .order("created_at", { ascending: false });
     if (error) {
       toast({
@@ -41,6 +38,15 @@ const TelegramChannels = () => {
     fetchChannels();
   }, []);
 
+  const isValidTelegramUrl = (url: string) => {
+    try {
+      const parsed = new URL(url);
+      return parsed.hostname === "t.me" || parsed.hostname === "www.t.me";
+    } catch {
+      return false;
+    }
+  };
+
   const handleAdd = async () => {
     const trimmedUrl = newUrl.trim();
     if (!trimmedUrl) {
@@ -51,51 +57,33 @@ const TelegramChannels = () => {
       });
       return;
     }
-    setLoading(true);
-    // 1. Проверяем ссылку и получаем название через edge function
-    try {
-      const resp = await fetch(EDGE_FUNCTION_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: trimmedUrl }),
-      });
-      const data = await resp.json();
-      if (!resp.ok) {
-        toast({
-          title: "Ошибка",
-          description: data.error || "Не удалось проверить канал",
-          variant: "destructive",
-        });
-        setLoading(false);
-        return;
-      }
-      // 2. Добавляем в базу с настоящим названием
-      const { error } = await supabase.from("telegram_channels").insert([
-        {
-          channel_url: trimmedUrl,
-          channel_title: data.title,
-        },
-      ]);
-      if (error) {
-        toast({
-          title: "Ошибка добавления канала",
-          description: error.message,
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Канал добавлен",
-          description: `Канал "${data.title}" успешно добавлен.`,
-        });
-        setNewUrl("");
-        fetchChannels();
-      }
-    } catch (e: any) {
+    if (!isValidTelegramUrl(trimmedUrl)) {
       toast({
         title: "Ошибка",
-        description: e.message || "Не удалось проверить канал",
+        description: "Ссылка должна быть валидным URL на t.me",
         variant: "destructive",
       });
+      return;
+    }
+    setLoading(true);
+    const { error } = await supabase.from("telegram_channels").insert([
+      {
+        channel_url: trimmedUrl,
+      },
+    ]);
+    if (error) {
+      toast({
+        title: "Ошибка добавления канала",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Канал добавлен",
+        description: trimmedUrl,
+      });
+      setNewUrl("");
+      fetchChannels();
     }
     setLoading(false);
   };
@@ -137,7 +125,7 @@ const TelegramChannels = () => {
               />
             </div>
             <Button className="w-full sm:w-auto" onClick={handleAdd} disabled={loading}>
-              {loading ? "Проверка..." : "Добавить ссылку"}
+              {loading ? "Сохраняем..." : "Добавить ссылку"}
             </Button>
           </div>
         </CardContent>
@@ -150,7 +138,7 @@ const TelegramChannels = () => {
           <ChannelList
             channels={channels.map((c) => ({
               id: c.id,
-              name: c.channel_title || c.channel_url,
+              name: c.channel_url,
               url: c.channel_url,
             }))}
             onDelete={handleDelete}

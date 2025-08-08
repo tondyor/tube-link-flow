@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
+import { Loader2, AlertTriangle } from "lucide-react";
 
 const EDGE_FUNCTION_URL = "https://lvrusgtopkuuuxgdzacf.functions.supabase.co/youtube-oauth";
 
@@ -13,6 +13,34 @@ const YouTubeConnect = () => {
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+  const redirectUri = import.meta.env.VITE_GOOGLE_REDIRECT_URI;
+
+  // This is the critical check. If these variables are not set, nothing else can proceed.
+  if (!clientId || !redirectUri || clientId === "YOUR_GOOGLE_CLIENT_ID_HERE") {
+    return (
+      <div className="p-6 bg-destructive/10 border-2 border-destructive rounded-lg text-center">
+        <div className="flex justify-center mb-4">
+          <AlertTriangle className="h-12 w-12 text-destructive" />
+        </div>
+        <h1 className="text-2xl font-bold text-destructive mb-4">ТРЕБУЕТСЯ НАСТРОЙКА</h1>
+        <p className="text-lg text-foreground mb-3">
+          Чтобы подключение к Google заработало, вам необходимо указать ваши личные ключи API.
+        </p>
+        <p className="text-muted-foreground mb-4">
+          Я не могу сделать это за вас в целях безопасности. Пожалуйста, добавьте следующие переменные в **настройках вашего проекта** и укажите их значения:
+        </p>
+        <div className="text-left inline-block bg-card p-4 rounded-md font-mono border shadow-sm">
+          <p>VITE_GOOGLE_CLIENT_ID="ВАШ_КЛЮЧ_ОТ_GOOGLE"</p>
+          <p>VITE_GOOGLE_REDIRECT_URI="ВАШ_REDIRECT_URI"</p>
+        </div>
+        <p className="mt-4 text-muted-foreground">
+          После того как вы добавите эти переменные, нажмите кнопку **Rebuild** над чатом, чтобы применить изменения.
+        </p>
+      </div>
+    );
+  }
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -47,7 +75,6 @@ const YouTubeConnect = () => {
             description: `Следующие каналы были успешно подключены: ${data.channels}`,
           });
 
-          // Redirect to the list of channels after success
           navigate("/youtube-channels");
 
         } catch (err: any) {
@@ -59,7 +86,6 @@ const YouTubeConnect = () => {
           });
         } finally {
           setLoading(false);
-          // Clean the URL
           window.history.replaceState({}, document.title, window.location.pathname);
         }
       })();
@@ -68,15 +94,6 @@ const YouTubeConnect = () => {
 
   const handleConnectGoogle = () => {
     setLoading(true);
-    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-    const redirectUri = import.meta.env.VITE_GOOGLE_REDIRECT_URI;
-    
-    if (!clientId || !redirectUri || clientId === "YOUR_GOOGLE_CLIENT_ID_HERE") {
-        setError("Ошибка конфигурации: VITE_GOOGLE_CLIENT_ID или VITE_GOOGLE_REDIRECT_URI не установлены. Скопируйте .env.example в .env, заполните значения и нажмите 'Rebuild'.");
-        setLoading(false);
-        return;
-    }
-
     const scope = encodeURIComponent(
       "https://www.googleapis.com/auth/youtube.readonly https://www.googleapis.com/auth/youtube.force-ssl"
     );
@@ -87,7 +104,6 @@ const YouTubeConnect = () => {
     window.location.href = authUrl;
   };
 
-  // If we are here after a redirect with a code, show a loading state.
   if (loading) {
     return (
         <div className="flex flex-col items-center justify-center h-full p-8 text-center">

@@ -1,3 +1,6 @@
+// @ts-nocheck
+/// <reference types="https://deno.land/x/deno/cli/types/deno.d.ts" />
+
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.54.0";
 import { OAuth2Client } from "https://esm.sh/google-auth-library@8.7.0";
@@ -35,7 +38,6 @@ serve(async (req) => {
 
     // Exchange code for tokens
     const { tokens } = await oauth2Client.getToken(code);
-
     oauth2Client.setCredentials(tokens);
 
     // Fetch YouTube channel info
@@ -59,13 +61,11 @@ serve(async (req) => {
     const data = await res.json();
 
     if (!data.items || data.items.length === 0) {
-      return new Response(JSON.stringify({ error: "No channels found" }), {
+      return new Response(JSON.stringify({ error: "No channels found in your Google account" }), {
         status: 404,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-
-    const channel = data.items[0];
 
     // Get user from Supabase auth cookie
     const authHeader = req.headers.get("authorization") || "";
@@ -82,31 +82,42 @@ serve(async (req) => {
       });
     }
 
-    // Upsert YouTube channel info and tokens
+    const channelsToUpsert = data.items.map((channel: any) => ({
+      user_id: user.id,
+      channel_id: channel.id,
+      channel_title: channel.snippet.title,
+      access_token: tokens.access_token,
+      refresh_token: tokens.refresh_token,
+      token_expiry: tokens.expiry_date ? new Date(tokens.expiry_date).toISOString() : new Date().toISOString(),
+    }));
+
+    // Upsert all channels found
     const { error: upsertError } = await supabase
       .from("youtube_channels")
-      .upsert({
-        user_id: user.id,
-        channel_id: channel.id,
-        channel_title: channel.snippet.title,
-        access_token: tokens.access_token,
-        refresh_token: tokens.refresh_token,
-        token_expiry: tokens.expiry_date ? new Date(tokens.expiry_date).toISOString() : new Date().toISOString(),
-      });
+      .upsert(channelsToUpsert, { onConflict: 'channel_id', ignoreDuplicates: false });
 
     if (upsertError) {
-      return new Response(JSON.stringify({ error: "Failed to save channel", details: upsertError.message }), {
+      // Check if the error is due to the user trying to add a channel that belongs to another user
+      if (upsertError.message.includes('violates row-level security policy')) {
+         return new Response(JSON.stringify({ error: "Один или несколько каналов уже подключены другим пользователем." }), {
+          status: 409, // Conflict
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      return new Response(JSON.stringify({ error: "Не удалось сохранить каналы", details: upsertError.message }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    return new Response(JSON.stringify({ message: "Channel connected", channel: channel.snippet.title }), {
+    const channelTitles = data.items.map((c: any) => c.snippet.title).join(', ');
+
+    return new Response(JSON.stringify({ message: "Каналы успешно подключены!", channels: channelTitles }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
-    return new Response(JSON.stringify({ error: "Internal server error", details: (error as Error).message }), {
+    return new Response(JSON.stringify({ error: "Внутренняя ошибка сервера", details: (error as Error).message }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

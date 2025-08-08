@@ -4,54 +4,60 @@ import { Button } from "@/components/ui/button";
 import { useTagging } from "@/context/TaggingContext";
 
 const TaggingDialog = () => {
-  const { taggedComponents, removeTag, clearTags } = useTagging();
+  const { taggedElements, removeTag, clearTags } = useTagging();
 
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="ml-2">
-          Пометки ({taggedComponents.length})
+        <Button variant="outline" size="sm" className="tagging-ui-ignore">
+          Пометки ({taggedElements.length})
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Помеченные компоненты</DialogTitle>
+          <DialogTitle>Помеченные элементы</DialogTitle>
         </DialogHeader>
-        {taggedComponents.length === 0 ? (
-          <p className="text-muted-foreground">Нет помеченных компонентов.</p>
+        {taggedElements.length === 0 ? (
+          <p className="text-muted-foreground">Нет помеченных элементов.</p>
         ) : (
           <ul className="space-y-2 max-h-64 overflow-y-auto">
-            {taggedComponents.map(({ id, name }) => (
+            {taggedElements.map(({ id, name, element }) => (
               <li
                 key={id}
                 className="flex justify-between items-center border rounded p-2 hover:bg-accent cursor-pointer"
                 onClick={() => {
-                  const el = document.querySelector(`[data-component-id="${id}"]`);
-                  if (el) {
-                    el.scrollIntoView({ behavior: "smooth", block: "center" });
-                    // Можно добавить краткую анимацию выделения
-                    el.classList.add("ring-4", "ring-primary");
-                    setTimeout(() => el.classList.remove("ring-4", "ring-primary"), 2000);
+                  if (element) {
+                    element.scrollIntoView({ behavior: "smooth", block: "center" });
+                    element.classList.add("ring-4", "ring-primary");
+                    setTimeout(() => element.classList.remove("ring-4", "ring-primary"), 2000);
                   }
                 }}
               >
                 <span>{name}</span>
-                <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); removeTag(id); }}>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="tagging-ui-ignore"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    removeTag(id);
+                  }}
+                >
                   ✕
                 </Button>
               </li>
             ))}
           </ul>
         )}
-        {taggedComponents.length > 0 && (
+        {taggedElements.length > 0 && (
           <div className="mt-4 flex justify-end">
-            <Button variant="destructive" onClick={clearTags}>
+            <Button variant="destructive" className="tagging-ui-ignore" onClick={clearTags}>
               Очистить все
             </Button>
           </div>
         )}
         <DialogClose asChild>
-          <Button variant="outline" className="mt-4 w-full">
+          <Button variant="outline" className="mt-4 w-full tagging-ui-ignore">
             Закрыть
           </Button>
         </DialogClose>

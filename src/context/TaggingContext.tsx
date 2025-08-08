@@ -1,43 +1,117 @@
-import React, { createContext, useContext, useState, ReactNode } from "react";
+import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 
-export interface TaggedComponent {
+export interface TaggedElement {
   id: string;
   name: string;
+  element: HTMLElement;
 }
 
 interface TaggingContextType {
-  taggedComponents: TaggedComponent[];
+  taggedElements: TaggedElement[];
   isTaggingMode: boolean;
   toggleTaggingMode: () => void;
-  addTag: (component: TaggedComponent) => void;
+  addTag: (el: HTMLElement) => void;
   removeTag: (id: string) => void;
   clearTags: () => void;
 }
 
 const TaggingContext = createContext<TaggingContextType | undefined>(undefined);
 
+function generateId() {
+  return "tag-" + Math.random().toString(36).substr(2, 9);
+}
+
 export const TaggingProvider = ({ children }: { children: ReactNode }) => {
-  const [taggedComponents, setTaggedComponents] = useState<TaggedComponent[]>([]);
+  const [taggedElements, setTaggedElements] = useState<TaggedElement[]>([]);
   const [isTaggingMode, setIsTaggingMode] = useState(false);
 
-  const toggleTaggingMode = () => setIsTaggingMode((prev) => !prev);
+  // Добавить элемент в пометки
+  const addTag = (el: HTMLElement) => {
+    let id = el.getAttribute("data-tag-id");
+    if (!id) {
+      id = generateId();
+      el.setAttribute("data-tag-id", id);
+    }
+    const name =
+      el.getAttribute("data-tag-name") ||
+      el.tagName.toLowerCase() +
+        (el.className ? "." + el.className.trim().replace(/\s+/g, ".") : "");
+    setTaggedElements((prev) => {
+      if (prev.find((t) => t.id === id)) return prev;
+      return [...prev, { id, name, element: el }];
+    });
+    // Добавляем класс выделения
+    el.classList.add("tagged-element-highlight");
+  };
 
-  const addTag = (component: TaggedComponent) => {
-    setTaggedComponents((prev) => {
-      if (prev.find((c) => c.id === component.id)) return prev;
-      return [...prev, component];
+  // Удалить элемент из пометок
+  const removeTag = (id: string) => {
+    setTaggedElements((prev) => {
+      const toRemove = prev.find((t) => t.id === id);
+      if (toRemove) {
+        toRemove.element.classList.remove("tagged-element-highlight");
+      }
+      return prev.filter((t) => t.id !== id);
     });
   };
 
-  const removeTag = (id: string) => {
-    setTaggedComponents((prev) => prev.filter((c) => c.id !== id));
+  // Очистить все пометки
+  const clearTags = () => {
+    taggedElements.forEach(({ element }) => {
+      element.classList.remove("tagged-element-highlight");
+    });
+    setTaggedElements([]);
   };
 
-  const clearTags = () => setTaggedComponents([]);
+  // Переключить режим пометки
+  const toggleTaggingMode = () => setIsTaggingMode((prev) => !prev);
+
+  // Глобальный обработчик кликов для пометки элементов
+  useEffect(() => {
+    if (!isTaggingMode) return;
+
+    const onClick = (e: MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+
+      const target = e.target as HTMLElement;
+      if (!target) return;
+
+      // Игнорируем элементы диалогов и кнопок управления пометками
+      if (target.closest(".tagging-ui-ignore")) return;
+
+      const id = target.getAttribute("data-tag-id");
+      if (id && taggedElements.find((t) => t.id === id)) {
+        removeTag(id);
+      } else {
+        addTag(target);
+      }
+    };
+
+    document.addEventListener("click", onClick, true);
+
+    return () => {
+      document.removeEventListener("click", onClick, true);
+    };
+  }, [isTaggingMode, taggedElements]);
+
+  // При выключении режима пометки убираем выделения
+  useEffect(() => {
+    if (!isTaggingMode) {
+      taggedElements.forEach(({ element }) => {
+        element.classList.remove("tagged-element-highlight");
+      });
+    } else {
+      // При включении — подсвечиваем все помеченные
+      taggedElements.forEach(({ element }) => {
+        element.classList.add("tagged-element-highlight");
+      });
+    }
+  }, [isTaggingMode, taggedElements]);
 
   return (
     <TaggingContext.Provider
-      value={{ taggedComponents, isTaggingMode, toggleTaggingMode, addTag, removeTag, clearTags }}
+      value={{ taggedElements, isTaggingMode, toggleTaggingMode, addTag, removeTag, clearTags }}
     >
       {children}
     </TaggingContext.Provider>

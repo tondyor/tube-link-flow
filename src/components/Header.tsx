@@ -25,7 +25,7 @@ const Header = () => {
 
   return (
     <header className="flex md:hidden items-center justify-between h-16 px-4 border-b bg-white dark:bg-gray-950">
-      <div className="flex items-center">
+      <div className="flex items-center tagging-ui-ignore">
         <Bot className="h-8 w-8 text-primary" />
         <h1 className="ml-3 text-xl font-bold">SplitRun</h1>
       </div>
@@ -35,17 +35,18 @@ const Header = () => {
           size="icon"
           title={isTaggingMode ? "Выключить режим пометки" : "Включить режим пометки"}
           onClick={toggleTaggingMode}
+          className="tagging-ui-ignore"
         >
           🏷️
         </Button>
         <TaggingDialog />
         <Sheet>
           <SheetTrigger asChild>
-            <Button variant="outline" size="icon">
+            <Button variant="outline" size="icon" className="tagging-ui-ignore">
               <Menu className="h-6 w-6" />
             </Button>
           </SheetTrigger>
-          <SheetContent side="left" className="w-72 p-0 overflow-y-auto">
+          <SheetContent side="left" className="w-72 p-0 overflow-y-auto tagging-ui-ignore">
             <div className="flex items-center h-16 px-6 border-b">
               <Bot className="h-8 w-8 text-primary" />
               <h1 className="ml-3 text-xl font-bold">SplitRun</h1>

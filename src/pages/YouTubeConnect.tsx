@@ -17,48 +17,45 @@ const YouTubeConnect = () => {
   const [channels, setChannels] = useState<YouTubeChannel[]>([]);
   const [loading, setLoading] = useState(false);
   const [authenticating, setAuthenticating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
-  // Fetch connected channels from Supabase to mark selected
   const fetchConnectedChannels = async () => {
     setLoading(true);
-    const user = (await supabase.auth.getUser()).data.user;
-    if (!user) {
-      setLoading(false);
-      toast({
-        title: "Ошибка",
-        description: "Пользователь не аутентифицирован",
-        variant: "destructive",
-      });
-      return;
+    setError(null);
+    try {
+      const user = (await supabase.auth.getUser()).data.user;
+      if (!user) {
+        setError("Пользователь не аутентифицирован");
+        setLoading(false);
+        return;
+      }
+      const { data, error } = await supabase
+        .from("youtube_channels")
+        .select("channel_id")
+        .eq("user_id", user.id);
+      if (error) {
+        setError(error.message);
+        setLoading(false);
+        return;
+      }
+      const connectedIds = data?.map((c) => c.channel_id) || [];
+      setChannels((prev) =>
+        prev.map((ch) => ({ ...ch, selected: connectedIds.includes(ch.id) }))
+      );
+    } catch (e: any) {
+      setError(e.message || "Ошибка загрузки каналов");
     }
-    const { data, error } = await supabase
-      .from("youtube_channels")
-      .select("channel_id")
-      .eq("user_id", user.id);
-    if (error) {
-      toast({
-        title: "Ошибка загрузки подключенных каналов",
-        description: error.message,
-        variant: "destructive",
-      });
-      setLoading(false);
-      return;
-    }
-    const connectedIds = data?.map((c) => c.channel_id) || [];
-    setChannels((prev) =>
-      prev.map((ch) => ({ ...ch, selected: connectedIds.includes(ch.id) }))
-    );
     setLoading(false);
   };
 
-  // After OAuth redirect, handle code param
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get("code");
     if (code) {
       (async () => {
         setAuthenticating(true);
+        setError(null);
         try {
           const session = supabase.auth.getSession ? (await supabase.auth.getSession()).data.session : null;
           if (!session) throw new Error("Пользователь не аутентифицирован");
@@ -83,9 +80,9 @@ const YouTubeConnect = () => {
             description: data.channel,
           });
 
-          // После подключения обновим список подключенных каналов
-          fetchConnectedChannels();
+          await fetchConnectedChannels();
         } catch (error: any) {
+          setError(error.message);
           toast({
             title: "Ошибка авторизации",
             description: error.message,
@@ -93,29 +90,24 @@ const YouTubeConnect = () => {
           });
         } finally {
           setAuthenticating(false);
-          // Убираем code из URL
           window.history.replaceState({}, document.title, window.location.pathname);
         }
       })();
+    } else {
+      fetchConnectedChannels();
     }
   }, []);
 
-  // Запрос списка каналов пользователя через YouTube API
   const fetchUserChannels = async () => {
     setLoading(true);
+    setError(null);
     try {
-      // Получаем access token из Supabase (уже сохранен при oauth)
       const user = (await supabase.auth.getUser()).data.user;
       if (!user) {
-        toast({
-          title: "Ошибка",
-          description: "Пользователь не аутентифицирован",
-          variant: "destructive",
-        });
+        setError("Пользователь не аутентифицирован");
         setLoading(false);
         return;
       }
-      // Получаем токен из таблицы youtube_channels для этого пользователя
       const { data, error } = await supabase
         .from("youtube_channels")
         .select("access_token")
@@ -124,18 +116,13 @@ const YouTubeConnect = () => {
         .single();
 
       if (error || !data) {
-        toast({
-          title: "Ошибка",
-          description: "Не найден токен доступа. Пожалуйста, подключите аккаунт Google.",
-          variant: "destructive",
-        });
+        setError("Не найден токен доступа. Пожалуйста, подключите аккаунт Google.");
         setLoading(false);
         return;
       }
 
       const accessToken = data.access_token;
 
-      // Запрос каналов через YouTube API
       const res = await fetch(
         "https://www.googleapis.com/youtube/v3/channels?part=snippet&mine=true",
         {
@@ -162,7 +149,6 @@ const YouTubeConnect = () => {
         return;
       }
 
-      // Формируем список каналов с selected = false
       const fetchedChannels: YouTubeChannel[] = json.items.map((item: any) => ({
         id: item.id,
         title: item.snippet.title,
@@ -170,7 +156,6 @@ const YouTubeConnect = () => {
         selected: false,
       }));
 
-      // Обновляем состояние, учитывая уже подключенные каналы
       const connectedIds = (await supabase
         .from("youtube_channels")
         .select("channel_id")
@@ -183,17 +168,17 @@ const YouTubeConnect = () => {
           selected: connectedIds.includes(ch.id),
         }))
       );
-    } catch (error: any) {
+    } catch (e: any) {
+      setError(e.message || "Не удалось получить каналы");
       toast({
         title: "Ошибка",
-        description: error.message || "Не удалось получить каналы",
+        description: e.message || "Не удалось получить каналы",
         variant: "destructive",
       });
     }
     setLoading(false);
   };
 
-  // Начать OAuth авторизацию Google
   const handleConnectGoogle = () => {
     const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
     const redirectUri = import.meta.env.VITE_GOOGLE_REDIRECT_URI;
@@ -206,33 +191,24 @@ const YouTubeConnect = () => {
     window.location.href = authUrl;
   };
 
-  // Обработка выбора канала для подключения/отключения
   const toggleChannelSelection = (id: string) => {
     setChannels((prev) =>
       prev.map((ch) => (ch.id === id ? { ...ch, selected: !ch.selected } : ch))
     );
   };
 
-  // Сохранить выбранные каналы в Supabase
   const handleSave = async () => {
     setLoading(true);
+    setError(null);
     const user = (await supabase.auth.getUser()).data.user;
     if (!user) {
-      toast({
-        title: "Ошибка",
-        description: "Пользователь не аутентифицирован",
-        variant: "destructive",
-      });
+      setError("Пользователь не аутентифицирован");
       setLoading(false);
       return;
     }
 
     try {
-      // Для каждого выбранного канала делаем upsert (сохраняем токены и данные)
       for (const channel of channels.filter((ch) => ch.selected)) {
-        // В реальном приложении нужно хранить access_token и refresh_token,
-        // но у нас их нет, кроме как в edge function при oauth.
-        // Здесь просто вставим канал с пустыми токенами, чтобы не ломать логику.
         const { error } = await supabase.from("youtube_channels").upsert({
           user_id: user.id,
           channel_id: channel.id,
@@ -242,17 +218,12 @@ const YouTubeConnect = () => {
           token_expiry: new Date().toISOString(),
         });
         if (error) {
-          toast({
-            title: "Ошибка сохранения канала",
-            description: error.message,
-            variant: "destructive",
-          });
+          setError(error.message);
           setLoading(false);
           return;
         }
       }
 
-      // Удаляем каналы, которые были отключены
       const selectedIds = channels.filter((ch) => ch.selected).map((ch) => ch.id);
       const { error: deleteError } = await supabase
         .from("youtube_channels")
@@ -261,11 +232,7 @@ const YouTubeConnect = () => {
         .not("channel_id", "in", `(${selectedIds.map((id) => `'${id}'`).join(",")})`);
 
       if (deleteError) {
-        toast({
-          title: "Ошибка удаления каналов",
-          description: deleteError.message,
-          variant: "destructive",
-        });
+        setError(deleteError.message);
         setLoading(false);
         return;
       }
@@ -273,10 +240,11 @@ const YouTubeConnect = () => {
       toast({
         title: "Каналы сохранены",
       });
-    } catch (error: any) {
+    } catch (e: any) {
+      setError(e.message || "Не удалось сохранить каналы");
       toast({
         title: "Ошибка",
-        description: error.message || "Не удалось сохранить каналы",
+        description: e.message || "Не удалось сохранить каналы",
         variant: "destructive",
       });
     }
@@ -286,6 +254,11 @@ const YouTubeConnect = () => {
   return (
     <div className="space-y-6 max-w-3xl">
       <h1 className="text-3xl font-bold">Подключение YouTube каналов</h1>
+      {error && (
+        <div className="p-4 bg-red-100 text-red-700 rounded">
+          Ошибка: {error}
+        </div>
+      )}
       <Card>
         <CardHeader>
           <CardTitle>Шаг 1: Подключите Google аккаунт</CardTitle>

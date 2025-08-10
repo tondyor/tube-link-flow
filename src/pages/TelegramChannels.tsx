@@ -43,29 +43,47 @@ const TelegramChannels = () => {
     fetchChannels();
   }, []);
 
-  const isValidTelegramUrl = (url: string) => {
+  // Validate input as either a valid t.me URL or a valid @username
+  const isValidTelegramInput = (input: string) => {
+    const trimmed = input.trim();
+    if (!trimmed) return false;
+
+    // Check if input is a valid URL with hostname t.me or www.t.me
     try {
-      const parsed = new URL(url);
-      return parsed.hostname === "t.me" || parsed.hostname === "www.t.me";
+      const parsed = new URL(trimmed);
+      if (parsed.hostname === "t.me" || parsed.hostname === "www.t.me") {
+        // Also check pathname for username presence
+        if (parsed.pathname && parsed.pathname.length > 1) {
+          return true;
+        }
+        return false;
+      }
     } catch {
-      return false;
+      // Not a valid URL, continue to check if it's @username
     }
+
+    // Check if input is @username format
+    if (/^@[a-zA-Z0-9_]{5,}$/.test(trimmed)) {
+      return true;
+    }
+
+    return false;
   };
 
   const handleAdd = async () => {
-    const trimmedUrl = newUrl.trim();
-    if (!trimmedUrl) {
+    const trimmedInput = newUrl.trim();
+    if (!trimmedInput) {
       toast({
         title: "Ошибка",
-        description: "Введите ссылку на канал",
+        description: "Введите ссылку на канал или @username",
         variant: "destructive",
       });
       return;
     }
-    if (!isValidTelegramUrl(trimmedUrl)) {
+    if (!isValidTelegramInput(trimmedInput)) {
       toast({
         title: "Ошибка",
-        description: "Ссылка должна быть валидным URL на t.me",
+        description: "Введите корректный URL канала Telegram или @username",
         variant: "destructive",
       });
       return;
@@ -76,7 +94,7 @@ const TelegramChannels = () => {
       const resp = await fetch(EDGE_FUNCTION_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: trimmedUrl }),
+        body: JSON.stringify({ url: trimmedInput }),
       });
       const info = await resp.json();
       if (!resp.ok) {
@@ -91,7 +109,7 @@ const TelegramChannels = () => {
       // Сохраняем ссылку и данные
       const { error } = await supabase.from("telegram_channels").insert([
         {
-          channel_url: trimmedUrl,
+          channel_url: trimmedInput,
           channel_title: info.title,
           channel_description: info.description,
           channel_image: info.image,
@@ -143,15 +161,15 @@ const TelegramChannels = () => {
       <Card>
         <CardHeader>
           <CardTitle>Добавить новый канал</CardTitle>
-          <CardDescription>Введите публичный URL-адрес канала Telegram.</CardDescription>
+          <CardDescription>Введите публичный URL-адрес канала Telegram или @username.</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col sm:flex-row items-end gap-4">
             <div className="flex-1 w-full">
-              <Label htmlFor="telegram-url">URL канала</Label>
+              <Label htmlFor="telegram-url">URL канала или @username</Label>
               <Input
                 id="telegram-url"
-                placeholder="https://t.me/channel_name"
+                placeholder="https://t.me/channel_name или @channel_name"
                 value={newUrl}
                 onChange={(e) => setNewUrl(e.target.value)}
                 disabled={loading}

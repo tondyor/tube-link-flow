@@ -1,10 +1,9 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import ChannelList from "@/components/ChannelList";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
 interface TelegramChannel {
@@ -23,47 +22,24 @@ const TelegramChannels = () => {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
-  const fetchChannels = async () => {
-    const { data, error } = await supabase
-      .from("telegram_channels")
-      .select("id, channel_url, channel_title, channel_description, channel_image")
-      .order("created_at", { ascending: false });
-    if (error) {
-      toast({
-        title: "Ошибка загрузки каналов",
-        description: error.message,
-        variant: "destructive",
-      });
-    } else {
-      setChannels(data || []);
-    }
-  };
-
-  useEffect(() => {
-    fetchChannels();
-  }, []);
-
   // Validate input as either a valid t.me URL or a valid @username
   const isValidTelegramInput = (input: string) => {
     const trimmed = input.trim();
     if (!trimmed) return false;
 
-    // Check if input is a valid URL with hostname t.me or www.t.me
     try {
       const parsed = new URL(trimmed);
       if (parsed.hostname === "t.me" || parsed.hostname === "www.t.me") {
-        // Also check pathname for username presence
         if (parsed.pathname && parsed.pathname.length > 1) {
           return true;
         }
         return false;
       }
     } catch {
-      // Not a valid URL, continue to check if it's @username
+      // Not a valid URL, continue to check if it's @username or username
     }
 
-    // Check if input is @username format
-    if (/^@[a-zA-Z0-9_]{5,}$/.test(trimmed)) {
+    if (/^@?[a-zA-Z0-9_]{5,32}$/.test(trimmed)) {
       return true;
     }
 
@@ -90,7 +66,6 @@ const TelegramChannels = () => {
     }
     setLoading(true);
     try {
-      // Запрос информации о канале
       const resp = await fetch(EDGE_FUNCTION_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -106,29 +81,34 @@ const TelegramChannels = () => {
         setLoading(false);
         return;
       }
-      // Сохраняем ссылку и данные
-      const { error } = await supabase.from("telegram_channels").insert([
+
+      // Check for duplicates by channel_url or username
+      if (channels.some((c) => c.channel_url.toLowerCase() === trimmedInput.toLowerCase() || c.channel_title === info.title)) {
+        toast({
+          title: "Канал уже добавлен",
+          description: info.title,
+          variant: "destructive", // changed from "warning" to "destructive"
+        });
+        setLoading(false);
+        return;
+      }
+
+      // Add to local state
+      setChannels((prev) => [
         {
+          id: crypto.randomUUID(),
           channel_url: trimmedInput,
           channel_title: info.title,
           channel_description: info.description,
           channel_image: info.image,
         },
+        ...prev,
       ]);
-      if (error) {
-        toast({
-          title: "Ошибка добавления канала",
-          description: error.message,
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Канал добавлен",
-          description: info.title,
-        });
-        setNewUrl("");
-        fetchChannels();
-      }
+      toast({
+        title: "Канал добавлен",
+        description: info.title,
+      });
+      setNewUrl("");
     } catch (e: any) {
       toast({
         title: "Ошибка",
@@ -139,20 +119,11 @@ const TelegramChannels = () => {
     setLoading(false);
   };
 
-  const handleDelete = async (id: string) => {
-    const { error } = await supabase.from("telegram_channels").delete().eq("id", id);
-    if (error) {
-      toast({
-        title: "Ошибка удаления канала",
-        description: error.message,
-        variant: "destructive",
-      });
-    } else {
-      toast({
-        title: "Канал удален",
-      });
-      fetchChannels();
-    }
+  const handleDelete = (id: string) => {
+    setChannels((prev) => prev.filter((c) => c.id !== id));
+    toast({
+      title: "Канал удален",
+    });
   };
 
   return (

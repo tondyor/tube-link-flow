@@ -22,7 +22,7 @@ const TelegramChannels = () => {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
-  // Validate input as either a valid t.me URL or a valid @username
+  // Валидация: URL с t.me или @username
   const isValidTelegramInput = (input: string) => {
     const trimmed = input.trim();
     if (!trimmed) return false;
@@ -36,7 +36,7 @@ const TelegramChannels = () => {
         return false;
       }
     } catch {
-      // Not a valid URL, continue to check if it's @username or username
+      // Не URL, проверяем @username
     }
 
     if (/^@?[a-zA-Z0-9_]{5,32}$/.test(trimmed)) {
@@ -82,18 +82,17 @@ const TelegramChannels = () => {
         return;
       }
 
-      // Check for duplicates by channel_url or username
+      // Проверка дубликатов по URL или названию
       if (channels.some((c) => c.channel_url.toLowerCase() === trimmedInput.toLowerCase() || c.channel_title === info.title)) {
         toast({
           title: "Канал уже добавлен",
           description: info.title,
-          variant: "destructive", // changed from "warning" to "destructive"
+          variant: "destructive",
         });
         setLoading(false);
         return;
       }
 
-      // Add to local state
       setChannels((prev) => [
         {
           id: crypto.randomUUID(),

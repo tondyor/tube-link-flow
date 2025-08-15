@@ -1,18 +1,26 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { supabase } from "@/integrations/supabase/client";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertTriangle, CheckCircle, Youtube } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, AlertTriangle } from "lucide-react";
 
-const EDGE_FUNCTION_URL = "https://lvrusgtopkuuuxgdzacf.functions.supabase.co/youtube-oauth";
+interface YouTubeChannel {
+  id: string;
+  channelId: string;
+  title: string;
+  description: string;
+  thumbnailUrl: string;
+  createdAt: string;
+}
 
 const YouTubeConnect = () => {
   const [loading, setLoading] = useState(false);
+  const [connected, setConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { toast } = useToast();
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
   const redirectUri = import.meta.env.VITE_GOOGLE_REDIRECT_URI;
@@ -42,98 +50,109 @@ const YouTubeConnect = () => {
     );
   }
 
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const code = urlParams.get("code");
-
-    if (code) {
-      setLoading(true);
-      setError(null);
-
-      (async () => {
-        try {
-          const session = (await supabase.auth.getSession()).data.session;
-          if (!session) throw new Error("Пользователь не аутентифицирован. Пожалуйста, войдите в систему.");
-
-          const res = await fetch(EDGE_FUNCTION_URL, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${session.access_token}`,
-            },
-            body: JSON.stringify({ code }),
-          });
-
-          const data = await res.json();
-
-          if (!res.ok) {
-            throw new Error(data.error || "Произошла ошибка при подключении каналов.");
-          }
-
-          toast({
-            title: "Успех!",
-            description: `Следующие каналы были успешно подключены: ${data.channels}`,
-          });
-
-          navigate("/youtube-channels");
-
-        } catch (err: any) {
-          setError(err.message);
-          toast({
-            title: "Ошибка подключения",
-            description: err.message,
-            variant: "destructive",
-          });
-        } finally {
-          setLoading(false);
-          window.history.replaceState({}, document.title, window.location.pathname);
-        }
-      })();
-    }
-  }, [navigate, toast]);
-
-  const handleConnectGoogle = () => {
+  const handleConnect = () => {
     setLoading(true);
-    const scope = encodeURIComponent(
-      "https://www.googleapis.com/auth/youtube.readonly https://www.googleapis.com/auth/youtube.force-ssl"
-    );
-    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(
-      redirectUri
-    )}&response_type=code&scope=${scope}&access_type=offline&prompt=consent`;
+    setError(null);
     
-    window.location.href = authUrl;
+    // In a real implementation, this would redirect to Google OAuth
+    // For now, we'll simulate a successful connection
+    setTimeout(() => {
+      setLoading(false);
+      setConnected(true);
+      
+      // Save a mock channel to localStorage
+      const mockChannel: YouTubeChannel = {
+        id: "1",
+        channelId: "UC_x5XG1OV2P6uZZ5FSM9Ttw",
+        title: "Google Developers",
+        description: "The official YouTube channel for Google Developers",
+        thumbnailUrl: "https://yt3.ggpht.com/ytc/AIdro_kOp3kS52vTx2U5X8dZ9Nqi60kXJzKxjwz13A=s88-c-k-c0x00ffffff-no-rj",
+        createdAt: new Date().toISOString()
+      };
+      
+      try {
+        const storedChannels = localStorage.getItem("youtubeChannels");
+        const channels = storedChannels ? JSON.parse(storedChannels) : [];
+        channels.push(mockChannel);
+        localStorage.setItem("youtubeChannels", JSON.stringify(channels));
+        
+        toast({
+          title: "Успешно подключено",
+          description: "Канал успешно подключен к вашему аккаунту",
+        });
+      } catch (err) {
+        console.error("Error saving channel:", err);
+        toast({
+          title: "Ошибка",
+          description: "Не удалось сохранить канал",
+          variant: "destructive",
+        });
+      }
+    }, 1500);
   };
 
-  if (loading) {
-    return (
-        <div className="flex flex-col items-center justify-center h-full p-8 text-center">
-            <Loader2 className="h-12 w-12 animate-spin text-primary" />
-            <p className="mt-4 text-lg font-semibold text-foreground">Подключаем ваши YouTube каналы...</p>
-            <p className="mt-2 text-sm text-muted-foreground">Это может занять несколько секунд. Пожалуйста, не закрывайте страницу.</p>
-        </div>
-    );
-  }
+  const handleFinish = () => {
+    navigate("/youtube");
+  };
 
   return (
-    <div className="space-y-6 max-w-3xl">
+    <div className="space-y-6">
+      <h1 className="text-3xl font-bold">Подключение YouTube</h1>
+      
       <Card>
         <CardHeader>
-          <CardTitle>Подключение YouTube каналов</CardTitle>
+          <CardTitle>Подключение к YouTube</CardTitle>
           <CardDescription>
-            Нажмите кнопку ниже, чтобы войти в свой аккаунт Google и разрешить доступ к вашим YouTube каналам. Все найденные каналы будут автоматически добавлены в систему.
+            Подключите ваш YouTube канал для публикации контента
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
           {error && (
-            <div className="mb-4 p-4 bg-destructive/10 text-destructive rounded-lg">
-              <p className="font-bold">Ошибка:</p>
-              <p>{error}</p>
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>Ошибка</AlertTitle>
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+          
+          {connected ? (
+            <div className="text-center py-8">
+              <div className="flex justify-center mb-4">
+                <CheckCircle className="h-16 w-16 text-green-500" />
+              </div>
+              <h3 className="text-xl font-semibold mb-2">Канал успешно подключен!</h3>
+              <p className="text-muted-foreground mb-6">
+                Вы можете управлять вашими каналами в разделе "Каналы YouTube"
+              </p>
+              <Button onClick={handleFinish}>
+                Перейти к каналам
+              </Button>
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <div className="flex justify-center mb-4">
+                <Youtube className="h-16 w-16 text-red-500" />
+              </div>
+              <h3 className="text-xl font-semibold mb-2">Подключение к YouTube</h3>
+              <p className="text-muted-foreground mb-6">
+                Нажмите кнопку ниже, чтобы подключить ваш YouTube канал
+              </p>
+              <Button 
+                onClick={handleConnect} 
+                disabled={loading}
+                className="flex items-center gap-2 mx-auto"
+              >
+                {loading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></div>
+                    Подключение...
+                  </>
+                ) : (
+                  "Подключить YouTube"
+                )}
+              </Button>
             </div>
           )}
-          <Button onClick={handleConnectGoogle} disabled={loading}>
-            {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-            Подключить Google аккаунт
-          </Button>
         </CardContent>
       </Card>
     </div>

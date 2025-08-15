@@ -1,172 +1,192 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import ChannelList from "@/components/ChannelList";
+import { useTelegramChannel } from "@/hooks/useTelegramChannel";
 import { useToast } from "@/hooks/use-toast";
+import { Send, Plus, Trash2 } from "lucide-react";
 
 interface TelegramChannel {
   id: string;
-  channel_url: string;
-  channel_title?: string;
-  channel_description?: string;
-  channel_image?: string;
+  username: string;
+  title: string;
+  description: string | null;
+  photoUrl?: string | null;
 }
-
-const EDGE_FUNCTION_URL = "https://lvrusgtopkuuuxgdzacf.functions.supabase.co/telegram-channel-info";
 
 const TelegramChannels = () => {
   const [channels, setChannels] = useState<TelegramChannel[]>([]);
-  const [newUrl, setNewUrl] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [channelInput, setChannelInput] = useState("");
+  const { fetchChannelInfo, loading } = useTelegramChannel();
   const { toast } = useToast();
 
-  // Валидация: URL с t.me или @username
-  const isValidTelegramInput = (input: string) => {
-    const trimmed = input.trim();
-    if (!trimmed) return false;
+  const handleAddChannel = async () => {
+    if (!channelInput.trim()) {
+      toast({
+        title: "Ошибка",
+        description: "Пожалуйста, введите ссылку на канал или его @username",
+        variant: "destructive",
+      });
+      return;
+    }
 
     try {
-      const parsed = new URL(trimmed);
-      if (parsed.hostname === "t.me" || parsed.hostname === "www.t.me") {
-        if (parsed.pathname && parsed.pathname.length > 1) {
-          return true;
+      const channelInfo = await fetchChannelInfo(channelInput);
+      
+      if (channelInfo) {
+        if (channels.some(channel => channel.username === `@${channelInfo.username}`)) {
+          toast({
+            title: "Канал уже добавлен",
+            description: "Этот Telegram канал уже есть в вашем списке.",
+            variant: "destructive",
+          });
+          return;
         }
-        return false;
+
+        const newChannel: TelegramChannel = {
+          id: channelInfo.username,
+          username: `@${channelInfo.username}`,
+          title: channelInfo.title,
+          description: channelInfo.description,
+          photoUrl: channelInfo.photoUrl
+        };
+        
+        const updatedChannels = [...channels, newChannel];
+        setChannels(updatedChannels);
+        localStorage.setItem("telegramChannels", JSON.stringify(updatedChannels));
+        
+        toast({
+          title: "Канал добавлен",
+          description: `Канал ${newChannel.username} успешно добавлен.`,
+        });
+        
+        setChannelInput("");
       }
-    } catch {
-      // Не URL, проверяем @username
+    } catch (error) {
+      console.error("Error adding channel:", error);
+      toast({
+        title: "Ошибка",
+        description: "Произошла непредвиденная ошибка при добавлении канала.",
+        variant: "destructive",
+      });
     }
-
-    if (/^@?[a-zA-Z0-9_]{5,32}$/.test(trimmed)) {
-      return true;
-    }
-
-    return false;
   };
 
-  const handleAdd = async () => {
-    const trimmedInput = newUrl.trim();
-    if (!trimmedInput) {
-      toast({
-        title: "Ошибка",
-        description: "Введите ссылку на канал или @username",
-        variant: "destructive",
-      });
-      return;
-    }
-    if (!isValidTelegramInput(trimmedInput)) {
-      toast({
-        title: "Ошибка",
-        description: "Введите корректный URL канала Telegram или @username",
-        variant: "destructive",
-      });
-      return;
-    }
-    setLoading(true);
-    try {
-      const resp = await fetch(EDGE_FUNCTION_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: trimmedInput }),
-      });
-      const info = await resp.json();
-      if (!resp.ok) {
-        toast({
-          title: "Ошибка",
-          description: info.error || "Не удалось получить информацию о канале",
-          variant: "destructive",
-        });
-        setLoading(false);
-        return;
-      }
-
-      // Проверка дубликатов по URL или названию
-      if (channels.some((c) => c.channel_url.toLowerCase() === trimmedInput.toLowerCase() || c.channel_title === info.title)) {
-        toast({
-          title: "Канал уже добавлен",
-          description: info.title,
-          variant: "destructive",
-        });
-        setLoading(false);
-        return;
-      }
-
-      setChannels((prev) => [
-        {
-          id: crypto.randomUUID(),
-          channel_url: trimmedInput,
-          channel_title: info.title,
-          channel_description: info.description,
-          channel_image: info.image,
-        },
-        ...prev,
-      ]);
-      toast({
-        title: "Канал добавлен",
-        description: info.title,
-      });
-      setNewUrl("");
-    } catch (e: any) {
-      toast({
-        title: "Ошибка",
-        description: e.message || "Не удалось получить информацию о канале",
-        variant: "destructive",
-      });
-    }
-    setLoading(false);
-  };
-
-  const handleDelete = (id: string) => {
-    setChannels((prev) => prev.filter((c) => c.id !== id));
+  const handleRemoveChannel = (channelId: string) => {
+    const updatedChannels = channels.filter(channel => channel.id !== channelId);
+    setChannels(updatedChannels);
+    localStorage.setItem("telegramChannels", JSON.stringify(updatedChannels));
+    
     toast({
       title: "Канал удален",
+      description: "Канал успешно удален из списка.",
     });
   };
 
+  React.useEffect(() => {
+    const savedChannels = localStorage.getItem("telegramChannels");
+    if (savedChannels) {
+      try {
+        setChannels(JSON.parse(savedChannels));
+      } catch (error) {
+        console.error("Error parsing saved channels:", error);
+      }
+    }
+  }, []);
+
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold">Ссылки на Telegram каналы</h1>
+      <h1 className="text-3xl font-bold">Каналы Telegram</h1>
+      
       <Card>
         <CardHeader>
-          <CardTitle>Добавить новый канал</CardTitle>
-          <CardDescription>Введите публичный URL-адрес канала Telegram или @username.</CardDescription>
+          <CardTitle>Добавить канал</CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="flex flex-col sm:flex-row items-end gap-4">
-            <div className="flex-1 w-full">
-              <Label htmlFor="telegram-url">URL канала или @username</Label>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="channel-url">Ссылка на канал или @username</Label>
+            <div className="flex gap-2">
               <Input
-                id="telegram-url"
-                placeholder="https://t.me/channel_name или @channel_name"
-                value={newUrl}
-                onChange={(e) => setNewUrl(e.target.value)}
-                disabled={loading}
+                id="channel-url"
+                placeholder="https://t.me/durov или @durov"
+                value={channelInput}
+                onChange={(e) => setChannelInput(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleAddChannel()}
               />
+              <Button 
+                onClick={handleAddChannel} 
+                disabled={loading}
+                className="flex items-center gap-2"
+              >
+                {loading ? (
+                  <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></div>
+                ) : (
+                  <Plus className="h-4 w-4" />
+                )}
+                Добавить
+              </Button>
             </div>
-            <Button className="w-full sm:w-auto" onClick={handleAdd} disabled={loading}>
-              {loading ? "Сохраняем..." : "Добавить ссылку"}
-            </Button>
+            <p className="text-sm text-muted-foreground">
+              Введите публичную ссылку на Telegram канал или его имя пользователя (с @ или без).
+            </p>
           </div>
         </CardContent>
       </Card>
-      <Card>
-        <CardHeader>
-          <CardTitle>Добавленные ссылки</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ChannelList
-            channels={channels.map((c) => ({
-              id: c.id,
-              name: c.channel_title || c.channel_url,
-              url: c.channel_url,
-            }))}
-            onDelete={handleDelete}
-            showUrl
-          />
-        </CardContent>
-      </Card>
+
+      {channels.length > 0 ? (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {channels.map((channel) => (
+            <Card key={channel.id} className="flex flex-col">
+              <CardHeader className="flex flex-row items-center gap-4">
+                {channel.photoUrl ? (
+                  <img
+                    src={channel.photoUrl}
+                    alt={channel.title}
+                    className="w-16 h-16 rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="bg-muted w-16 h-16 rounded-full flex items-center justify-center">
+                    <Send className="h-8 w-8 text-muted-foreground" />
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <CardTitle className="text-lg truncate">{channel.title}</CardTitle>
+                  <p className="text-sm text-muted-foreground truncate">
+                    {channel.username}
+                  </p>
+                </div>
+              </CardHeader>
+              <CardContent className="flex-1">
+                <p className="text-sm text-muted-foreground mb-2 line-clamp-2">
+                  {channel.description || "Нет описания"}
+                </p>
+              </CardContent>
+              <CardContent className="flex justify-end mt-auto">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleRemoveChannel(channel.id)}
+                  className="flex items-center gap-2"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Удалить
+                </Button>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : (
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <Send className="h-16 w-16 text-muted-foreground mb-4" />
+            <h3 className="text-xl font-semibold mb-2">Нет добавленных каналов</h3>
+            <p className="text-muted-foreground mb-6 text-center">
+              Добавьте Telegram каналы для мониторинга контента
+            </p>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };

@@ -1,146 +1,142 @@
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { supabase } from "@/integrations/supabase/client";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertTriangle, Youtube, Plus, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-
-const EDGE_FUNCTION_URL = "https://lvrusgtopkuuuxgdzacf.functions.supabase.co/youtube-oauth";
 
 interface YouTubeChannel {
   id: string;
-  channel_id: string;
-  channel_title: string;
+  channelId: string;
+  title: string;
+  description: string;
+  thumbnailUrl: string;
+  createdAt: string;
 }
 
 const YouTubeChannels = () => {
   const [channels, setChannels] = useState<YouTubeChannel[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
   const { toast } = useToast();
 
-  const fetchChannels = async () => {
-    setLoading(true);
-    const user = (await supabase.auth.getUser()).data.user;
-    if (!user) {
-      setLoading(false);
-      return;
-    }
-    const { data, error } = await supabase
-      .from("youtube_channels")
-      .select("id, channel_id, channel_title")
-      .eq("user_id", user.id);
-    if (error) {
-      toast({
-        title: "Ошибка загрузки каналов",
-        description: error.message,
-        variant: "destructive",
-      });
-    } else {
-      setChannels(data || []);
-    }
-    setLoading(false);
-  };
-
   useEffect(() => {
-    fetchChannels();
-  }, []);
-
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const code = urlParams.get("code");
-    if (code) {
-      (async () => {
-        setLoading(true);
-        try {
-          const session = supabase.auth.getSession ? (await supabase.auth.getSession()).data.session : null;
-          if (!session) throw new Error("User not authenticated");
-
-          const res = await fetch(EDGE_FUNCTION_URL, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${session.access_token}`,
-            },
-            body: JSON.stringify({ code }),
-          });
-
-          const data = await res.json();
-
-          if (!res.ok) {
-            throw new Error(data.error || "Ошибка подключения канала");
-          }
-
-          toast({
-            title: "Канал подключен",
-            description: data.channel,
-          });
-
-          fetchChannels();
-        } catch (error: any) {
-          toast({
-            title: "Ошибка авторизации",
-            description: error.message,
-            variant: "destructive",
-          });
-        } finally {
-          setLoading(false);
-          window.history.replaceState({}, document.title, window.location.pathname);
+    // Simulate fetching channels from local storage or context
+    const fetchChannels = () => {
+      try {
+        const storedChannels = localStorage.getItem("youtubeChannels");
+        if (storedChannels) {
+          setChannels(JSON.parse(storedChannels));
         }
-      })();
-    }
-  }, []);
+      } catch (err) {
+        console.error("Error loading channels:", err);
+        toast({
+          title: "Ошибка",
+          description: "Не удалось загрузить список каналов",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchChannels();
+  }, [toast]);
 
   const handleConnect = () => {
-    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-    const redirectUri = import.meta.env.VITE_GOOGLE_REDIRECT_URI;
-    const scope = encodeURIComponent("https://www.googleapis.com/auth/youtube.readonly https://www.googleapis.com/auth/youtube.force-ssl");
-    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${scope}&access_type=offline&prompt=consent`;
-    window.location.href = authUrl;
+    navigate("/youtube-connect");
   };
 
-  const handleDelete = async (id: string) => {
-    setLoading(true);
-    const { error } = await supabase.from("youtube_channels").delete().eq("id", id);
-    if (error) {
-      toast({
-        title: "Ошибка удаления канала",
-        description: error.message,
-        variant: "destructive",
-      });
-    } else {
+  const handleRemoveChannel = (channelId: string) => {
+    try {
+      const updatedChannels = channels.filter(channel => channel.id !== channelId);
+      setChannels(updatedChannels);
+      localStorage.setItem("youtubeChannels", JSON.stringify(updatedChannels));
       toast({
         title: "Канал удален",
+        description: "Канал успешно удален из списка",
       });
-      fetchChannels();
+    } catch (err) {
+      console.error("Error removing channel:", err);
+      toast({
+        title: "Ошибка",
+        description: "Не удалось удалить канал",
+        variant: "destructive",
+      });
     }
-    setLoading(false);
   };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold">Каналы YouTube</h1>
-      <Card>
-        <CardHeader>
-          <CardTitle>Подключенные каналы</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {channels.length === 0 && <p>Нет подключенных каналов.</p>}
-          <ul className="space-y-2">
-            {channels.map((channel) => (
-              <li key={channel.id} className="flex justify-between items-center border p-2 rounded">
-                <span>{channel.channel_title}</span>
-                <Button variant="destructive" size="sm" onClick={() => handleDelete(channel.id)} disabled={loading}>
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-bold">Каналы YouTube</h1>
+        <Button onClick={handleConnect} className="flex items-center gap-2">
+          <Plus className="h-4 w-4" />
+          Подключить канал
+        </Button>
+      </div>
+
+      {channels.length === 0 ? (
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <Youtube className="h-16 w-16 text-muted-foreground mb-4" />
+            <h3 className="text-xl font-semibold mb-2">Нет подключенных каналов</h3>
+            <p className="text-muted-foreground mb-6 text-center">
+              Подключите ваш YouTube канал для начала публикации контента
+            </p>
+            <Button onClick={handleConnect} className="flex items-center gap-2">
+              <Plus className="h-4 w-4" />
+              Подключить канал
+            </Button>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {channels.map((channel) => (
+            <Card key={channel.id} className="flex flex-col">
+              <CardHeader className="flex flex-row items-center gap-4">
+                {channel.thumbnailUrl ? (
+                  <img
+                    src={channel.thumbnailUrl}
+                    alt={channel.title}
+                    className="w-16 h-16 rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="bg-muted w-16 h-16 rounded-full flex items-center justify-center">
+                    <Youtube className="h-8 w-8 text-muted-foreground" />
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <CardTitle className="text-lg truncate">{channel.title}</CardTitle>
+                  <p className="text-sm text-muted-foreground truncate">
+                    {channel.description || "Нет описания"}
+                  </p>
+                </div>
+              </CardHeader>
+              <CardContent className="flex justify-end mt-auto">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleRemoveChannel(channel.id)}
+                  className="flex items-center gap-2"
+                >
+                  <Trash2 className="h-4 w-4" />
                   Удалить
                 </Button>
-              </li>
-            ))}
-          </ul>
-          <div className="mt-4">
-            <Button onClick={handleConnect} disabled={loading}>
-              Подключить новый канал YouTube
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   );
 };

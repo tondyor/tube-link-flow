@@ -1,7 +1,10 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Activity, Send, Youtube, CheckCircle } from "lucide-react";
+import { useChannels } from "@/context/ChannelsContext";
 
 const Dashboard = () => {
+  const { telegramChannels, youtubeChannels } = useChannels();
+
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-bold">Панель управления</h1>
@@ -12,7 +15,7 @@ const Dashboard = () => {
             <Send className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">5</div>
+            <div className="text-2xl font-bold">{telegramChannels.length}</div>
             <p className="text-xs text-muted-foreground">Подключенные каналы</p>
           </CardContent>
         </Card>
@@ -22,7 +25,7 @@ const Dashboard = () => {
             <Youtube className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">2</div>
+            <div className="text-2xl font-bold">{youtubeChannels.length}</div>
             <p className="text-xs text-muted-foreground">Подключенные каналы</p>
           </CardContent>
         </Card>

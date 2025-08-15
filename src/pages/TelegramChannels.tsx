@@ -1,25 +1,107 @@
 import React, { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useTelegramChannel } from "@/hooks/useTelegramChannel";
+import { useTelegramChannel, TelegramChannelInfo } from "@/hooks/useTelegramChannel";
 import { useToast } from "@/hooks/use-toast";
-import { Send, Plus, Trash2 } from "lucide-react";
+import { Send, Plus, Trash2, Loader2 } from "lucide-react";
+import { useSession } from "@/context/SessionContext";
+import { supabase } from "@/integrations/supabase/client";
 
 interface TelegramChannel {
   id: string;
-  username: string;
-  title: string;
-  description: string | null;
-  photoUrl?: string | null;
+  channel_username: string;
+  channel_title: string;
+  channel_description: string | null;
+  photo_url?: string | null;
 }
 
+const fetchUserTelegramChannels = async (userId: string): Promise<TelegramChannel[]> => {
+  const { data, error } = await supabase
+    .from('telegram_channels')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false });
+  if (error) throw new Error(error.message);
+  return data;
+};
+
 const TelegramChannels = () => {
-  const [channels, setChannels] = useState<TelegramChannel[]>([]);
   const [channelInput, setChannelInput] = useState("");
-  const { fetchChannelInfo, loading } = useTelegramChannel();
+  const { user } = useSession();
+  const queryClient = useQueryClient();
+  const { fetchChannelInfo, loading: isValidating } = useTelegramChannel();
   const { toast } = useToast();
+
+  const { data: channels = [], isLoading: isLoadingChannels } = useQuery({
+    queryKey: ['telegramChannels', user?.id],
+    queryFn: () => fetchUserTelegramChannels(user!.id),
+    enabled: !!user,
+  });
+
+  const addChannelMutation = useMutation({
+    mutationFn: async (channelInfo: TelegramChannelInfo) => {
+      if (!user) throw new Error("Пользователь не авторизован");
+
+      const { data, error } = await supabase
+        .from('telegram_channels')
+        .insert({
+          user_id: user.id,
+          channel_username: `@${channelInfo.username}`,
+          channel_title: channelInfo.title,
+          channel_description: channelInfo.description,
+          photo_url: channelInfo.photoUrl,
+        })
+        .select()
+        .single();
+
+      if (error) {
+        if (error.code === '23505') { // Unique constraint violation
+          throw new Error("Этот канал уже добавлен.");
+        }
+        throw error;
+      }
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['telegramChannels', user?.id] });
+      toast({
+        title: "Канал добавлен",
+        description: "Канал успешно добавлен в ваш список.",
+      });
+      setChannelInput("");
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Ошибка добавления",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteChannelMutation = useMutation({
+    mutationFn: async (channelId: string) => {
+      const { error } = await supabase.from('telegram_channels').delete().eq('id', channelId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['telegramChannels', user?.id] });
+      toast({
+        title: "Канал удален",
+        description: "Канал успешно удален из списка.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Ошибка удаления",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
 
   const handleAddChannel = async () => {
     if (!channelInput.trim()) {
@@ -30,70 +112,13 @@ const TelegramChannels = () => {
       });
       return;
     }
-
-    try {
-      const channelInfo = await fetchChannelInfo(channelInput);
-      
-      if (channelInfo) {
-        if (channels.some(channel => channel.username === `@${channelInfo.username}`)) {
-          toast({
-            title: "Канал уже добавлен",
-            description: "Этот Telegram канал уже есть в вашем списке.",
-            variant: "destructive",
-          });
-          return;
-        }
-
-        const newChannel: TelegramChannel = {
-          id: channelInfo.username,
-          username: `@${channelInfo.username}`,
-          title: channelInfo.title,
-          description: channelInfo.description,
-          photoUrl: channelInfo.photoUrl
-        };
-        
-        const updatedChannels = [...channels, newChannel];
-        setChannels(updatedChannels);
-        localStorage.setItem("telegramChannels", JSON.stringify(updatedChannels));
-        
-        toast({
-          title: "Канал добавлен",
-          description: `Канал ${newChannel.username} успешно добавлен.`,
-        });
-        
-        setChannelInput("");
-      }
-    } catch (error) {
-      console.error("Error adding channel:", error);
-      toast({
-        title: "Ошибка",
-        description: "Произошла непредвиденная ошибка при добавлении канала.",
-        variant: "destructive",
-      });
+    const channelInfo = await fetchChannelInfo(channelInput);
+    if (channelInfo) {
+      addChannelMutation.mutate(channelInfo);
     }
   };
 
-  const handleRemoveChannel = (channelId: string) => {
-    const updatedChannels = channels.filter(channel => channel.id !== channelId);
-    setChannels(updatedChannels);
-    localStorage.setItem("telegramChannels", JSON.stringify(updatedChannels));
-    
-    toast({
-      title: "Канал удален",
-      description: "Канал успешно удален из списка.",
-    });
-  };
-
-  React.useEffect(() => {
-    const savedChannels = localStorage.getItem("telegramChannels");
-    if (savedChannels) {
-      try {
-        setChannels(JSON.parse(savedChannels));
-      } catch (error) {
-        console.error("Error parsing saved channels:", error);
-      }
-    }
-  }, []);
+  const isLoading = isValidating || addChannelMutation.isPending || deleteChannelMutation.isPending;
 
   return (
     <div className="space-y-6">
@@ -113,18 +138,21 @@ const TelegramChannels = () => {
                 value={channelInput}
                 onChange={(e) => setChannelInput(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleAddChannel()}
+                disabled={isLoading}
               />
               <Button 
                 onClick={handleAddChannel} 
-                disabled={loading}
-                className="flex items-center gap-2"
+                disabled={isLoading}
+                className="flex items-center gap-2 w-32"
               >
-                {loading ? (
-                  <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></div>
+                {isLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
-                  <Plus className="h-4 w-4" />
+                  <>
+                    <Plus className="h-4 w-4" />
+                    Добавить
+                  </>
                 )}
-                Добавить
               </Button>
             </div>
             <p className="text-sm text-muted-foreground">
@@ -134,15 +162,19 @@ const TelegramChannels = () => {
         </CardContent>
       </Card>
 
-      {channels.length > 0 ? (
+      {isLoadingChannels ? (
+        <div className="flex justify-center items-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      ) : channels.length > 0 ? (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {channels.map((channel) => (
             <Card key={channel.id} className="flex flex-col">
               <CardHeader className="flex flex-row items-center gap-4">
-                {channel.photoUrl ? (
+                {channel.photo_url ? (
                   <img
-                    src={channel.photoUrl}
-                    alt={channel.title}
+                    src={channel.photo_url}
+                    alt={channel.channel_title}
                     className="w-16 h-16 rounded-full object-cover"
                   />
                 ) : (
@@ -151,22 +183,23 @@ const TelegramChannels = () => {
                   </div>
                 )}
                 <div className="flex-1 min-w-0">
-                  <CardTitle className="text-lg truncate">{channel.title}</CardTitle>
+                  <CardTitle className="text-lg truncate">{channel.channel_title}</CardTitle>
                   <p className="text-sm text-muted-foreground truncate">
-                    {channel.username}
+                    {channel.channel_username}
                   </p>
                 </div>
               </CardHeader>
               <CardContent className="flex-1">
                 <p className="text-sm text-muted-foreground mb-2 line-clamp-2">
-                  {channel.description || "Нет описания"}
+                  {channel.channel_description || "Нет описания"}
                 </p>
               </CardContent>
               <CardContent className="flex justify-end mt-auto">
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => handleRemoveChannel(channel.id)}
+                  onClick={() => deleteChannelMutation.mutate(channel.id)}
+                  disabled={deleteChannelMutation.isPending}
                   className="flex items-center gap-2"
                 >
                   <Trash2 className="h-4 w-4" />

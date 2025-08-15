@@ -1,7 +1,4 @@
-/**
- * This edge function runs in Deno environment where 'serve' is globally available.
- * Removed import to fix TypeScript compile error.
- */
+import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",

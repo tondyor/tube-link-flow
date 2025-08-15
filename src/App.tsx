@@ -15,35 +15,43 @@ import InstagramPublish from "./pages/InstagramPublish";
 import YouTubePublish from "./pages/YouTubePublish";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
+import Login from "./pages/Login";
 import { ChannelsProvider } from "./context/ChannelsContext";
+import { SessionProvider } from "./context/SessionContext";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <ChannelsProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route element={<Layout />}>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/telegram" element={<TelegramChannels />} />
-              <Route path="/youtube" element={<YouTubeChannels />} />
-              <Route path="/youtube-connect" element={<YouTubeConnect />} />
-              <Route path="/tiktok-source" element={<TikTokSource />} />
-              <Route path="/instagram-source" element={<InstagramSource />} />
-              <Route path="/youtube-publish" element={<YouTubePublish />} />
-              <Route path="/tiktok-publish" element={<TikTokPublish />} />
-              <Route path="/instagram-publish" element={<InstagramPublish />} />
-              <Route path="/settings" element={<Settings />} />
-            </Route>
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
-    </ChannelsProvider>
+    <SessionProvider>
+      <ChannelsProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              <Route path="/login" element={<Login />} />
+              <Route element={<ProtectedRoute />}>
+                <Route element={<Layout />}>
+                  <Route path="/" element={<Dashboard />} />
+                  <Route path="/telegram" element={<TelegramChannels />} />
+                  <Route path="/youtube" element={<YouTubeChannels />} />
+                  <Route path="/youtube-connect" element={<YouTubeConnect />} />
+                  <Route path="/tiktok-source" element={<TikTokSource />} />
+                  <Route path="/instagram-source" element={<InstagramSource />} />
+                  <Route path="/youtube-publish" element={<YouTubePublish />} />
+                  <Route path="/tiktok-publish" element={<TikTokPublish />} />
+                  <Route path="/instagram-publish" element={<InstagramPublish />} />
+                  <Route path="/settings" element={<Settings />} />
+                </Route>
+              </Route>
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </TooltipProvider>
+      </ChannelsProvider>
+    </SessionProvider>
   </QueryClientProvider>
 );
 

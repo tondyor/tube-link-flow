@@ -11,22 +11,18 @@ import { supabase } from "@/integrations/supabase/client";
 interface TelegramChannelInfo {
   username: string;
   title: string;
-  description: string | null;
-  photoUrl?: string | null;
 }
 
 interface TelegramChannel {
   id: string;
   channel_username: string;
   channel_title: string;
-  channel_description: string | null;
-  photo_url?: string | null;
 }
 
 const fetchTelegramChannels = async (): Promise<TelegramChannel[]> => {
   const { data, error } = await supabase
     .from('telegram_channels')
-    .select('*')
+    .select('id, channel_username, channel_title')
     .order('created_at', { ascending: false });
   if (error) throw new Error(error.message);
   return data;
@@ -79,8 +75,6 @@ const TelegramChannels = () => {
         .insert({
           channel_username: `@${channelInfo.username}`,
           channel_title: channelInfo.title,
-          channel_description: channelInfo.description,
-          photo_url: channelInfo.photoUrl,
         })
         .select()
         .single();
@@ -147,8 +141,6 @@ const TelegramChannels = () => {
       const channelInfo: TelegramChannelInfo = {
         username: username,
         title: username,
-        description: "Канал добавлен вручную.",
-        photoUrl: `https://ui-avatars.com/api/?name=${username.substring(0, 2)}&background=random`,
       };
       addChannelMutation.mutate(channelInfo);
     } else {
@@ -213,17 +205,9 @@ const TelegramChannels = () => {
           {channels.map((channel) => (
             <Card key={channel.id} className="flex flex-col">
               <CardHeader className="flex flex-row items-center gap-4">
-                {channel.photo_url ? (
-                  <img
-                    src={channel.photo_url}
-                    alt={channel.channel_title}
-                    className="w-16 h-16 rounded-full object-cover"
-                  />
-                ) : (
-                  <div className="bg-muted w-16 h-16 rounded-full flex items-center justify-center">
-                    <Send className="h-8 w-8 text-muted-foreground" />
-                  </div>
-                )}
+                <div className="bg-muted w-16 h-16 rounded-full flex items-center justify-center">
+                  <Send className="h-8 w-8 text-muted-foreground" />
+                </div>
                 <div className="flex-1 min-w-0">
                   <CardTitle className="text-lg truncate">{channel.channel_title}</CardTitle>
                   <p className="text-sm text-muted-foreground truncate">
@@ -231,11 +215,6 @@ const TelegramChannels = () => {
                   </p>
                 </div>
               </CardHeader>
-              <CardContent className="flex-1">
-                <p className="text-sm text-muted-foreground mb-2 line-clamp-2">
-                  {channel.channel_description || "Нет описания"}
-                </p>
-              </CardContent>
               <CardContent className="flex justify-end mt-auto">
                 <Button
                   variant="outline"

@@ -7,7 +7,6 @@ import { Label } from "@/components/ui/label";
 import { useTelegramChannel, TelegramChannelInfo } from "@/hooks/useTelegramChannel";
 import { useToast } from "@/hooks/use-toast";
 import { Send, Plus, Trash2, Loader2 } from "lucide-react";
-import { useSession } from "@/context/SessionContext";
 import { supabase } from "@/integrations/supabase/client";
 
 interface TelegramChannel {
@@ -18,11 +17,10 @@ interface TelegramChannel {
   photo_url?: string | null;
 }
 
-const fetchUserTelegramChannels = async (userId: string): Promise<TelegramChannel[]> => {
+const fetchTelegramChannels = async (): Promise<TelegramChannel[]> => {
   const { data, error } = await supabase
     .from('telegram_channels')
     .select('*')
-    .eq('user_id', userId)
     .order('created_at', { ascending: false });
   if (error) throw new Error(error.message);
   return data;
@@ -30,25 +28,20 @@ const fetchUserTelegramChannels = async (userId: string): Promise<TelegramChanne
 
 const TelegramChannels = () => {
   const [channelInput, setChannelInput] = useState("");
-  const { user } = useSession();
   const queryClient = useQueryClient();
   const { fetchChannelInfo, loading: isValidating } = useTelegramChannel();
   const { toast } = useToast();
 
   const { data: channels = [], isLoading: isLoadingChannels } = useQuery({
-    queryKey: ['telegramChannels', user?.id],
-    queryFn: () => fetchUserTelegramChannels(user!.id),
-    enabled: !!user,
+    queryKey: ['telegramChannels'],
+    queryFn: fetchTelegramChannels,
   });
 
   const addChannelMutation = useMutation({
     mutationFn: async (channelInfo: TelegramChannelInfo) => {
-      if (!user) throw new Error("Пользователь не авторизован");
-
       const { data, error } = await supabase
         .from('telegram_channels')
         .insert({
-          user_id: user.id,
           channel_username: `@${channelInfo.username}`,
           channel_title: channelInfo.title,
           channel_description: channelInfo.description,
@@ -66,7 +59,7 @@ const TelegramChannels = () => {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['telegramChannels', user?.id] });
+      queryClient.invalidateQueries({ queryKey: ['telegramChannels'] });
       toast({
         title: "Канал добавлен",
         description: "Канал успешно добавлен в ваш список.",
@@ -88,7 +81,7 @@ const TelegramChannels = () => {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['telegramChannels', user?.id] });
+      queryClient.invalidateQueries({ queryKey: ['telegramChannels'] });
       toast({
         title: "Канал удален",
         description: "Канал успешно удален из списка.",

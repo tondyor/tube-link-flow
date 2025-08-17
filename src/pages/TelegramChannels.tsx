@@ -4,10 +4,16 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useTelegramChannel, TelegramChannelInfo } from "@/hooks/useTelegramChannel";
 import { useToast } from "@/hooks/use-toast";
 import { Send, Plus, Trash2, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+
+interface TelegramChannelInfo {
+  username: string;
+  title: string;
+  description: string | null;
+  photoUrl?: string | null;
+}
 
 interface TelegramChannel {
   id: string;
@@ -26,10 +32,39 @@ const fetchTelegramChannels = async (): Promise<TelegramChannel[]> => {
   return data;
 };
 
+const extractUsername = (input: string): string | null => {
+  try {
+    let username = input.trim();
+
+    if (username.startsWith("http://") || username.startsWith("https://")) {
+      const url = new URL(username);
+      if (url.hostname === "t.me" || url.hostname === "www.t.me") {
+        username = url.pathname.replace(/^\/+/, "");
+        if (username.startsWith('s/')) {
+          username = username.substring(2);
+        }
+      } else {
+        return null;
+      }
+    }
+
+    if (username.startsWith("@")) {
+      username = username.slice(1);
+    }
+
+    if (/^[a-zA-Z0-9_]{5,32}$/.test(username)) {
+      return username;
+    }
+
+    return null;
+  } catch (e) {
+    return null;
+  }
+};
+
 const TelegramChannels = () => {
   const [channelInput, setChannelInput] = useState("");
   const queryClient = useQueryClient();
-  const { fetchChannelInfo, loading: isValidating } = useTelegramChannel();
   const { toast } = useToast();
 
   const { data: channels = [], isLoading: isLoadingChannels } = useQuery({
@@ -105,13 +140,27 @@ const TelegramChannels = () => {
       });
       return;
     }
-    const channelInfo = await fetchChannelInfo(channelInput);
-    if (channelInfo) {
+
+    const username = extractUsername(channelInput);
+
+    if (username) {
+      const channelInfo: TelegramChannelInfo = {
+        username: username,
+        title: username,
+        description: "Канал добавлен вручную.",
+        photoUrl: `https://ui-avatars.com/api/?name=${username.substring(0, 2)}&background=random`,
+      };
       addChannelMutation.mutate(channelInfo);
+    } else {
+      toast({
+        title: "Неверный формат",
+        description: "Пожалуйста, введите корректную ссылку на канал или его @username.",
+        variant: "destructive",
+      });
     }
   };
 
-  const isLoading = isValidating || addChannelMutation.isPending || deleteChannelMutation.isPending;
+  const isLoading = addChannelMutation.isPending || deleteChannelMutation.isPending;
 
   return (
     <div className="space-y-6">

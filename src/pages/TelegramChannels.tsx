@@ -10,14 +10,13 @@ import { supabase } from "@/integrations/supabase/client";
 
 interface TelegramChannel {
   id: string;
-  channel_username: string;
   channel_title: string;
 }
 
 const fetchTelegramChannels = async (): Promise<TelegramChannel[]> => {
   const { data, error } = await supabase
     .from('telegram_channels')
-    .select('id, channel_username, channel_title')
+    .select('id, channel_title')
     .order('created_at', { ascending: false });
   if (error) throw new Error(error.message);
   return data;
@@ -38,7 +37,6 @@ const TelegramChannels = () => {
       const { data, error } = await supabase
         .from('telegram_channels')
         .insert({
-          channel_username: rawInput,
           channel_title: rawInput,
         })
         .select()
@@ -55,8 +53,8 @@ const TelegramChannels = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['telegramChannels'] });
       toast({
-        title: "Канал добавлен",
-        description: "Канал успешно добавлен в ваш список.",
+        title: "Запись добавлена",
+        description: "Текст успешно сохранен.",
       });
       setChannelInput("");
     },
@@ -77,8 +75,8 @@ const TelegramChannels = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['telegramChannels'] });
       toast({
-        title: "Канал удален",
-        description: "Канал успешно удален из списка.",
+        title: "Запись удалена",
+        description: "Запись успешно удалена.",
       });
     },
     onError: (error: Error) => {
@@ -106,18 +104,18 @@ const TelegramChannels = () => {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold">Каналы Telegram</h1>
+      <h1 className="text-3xl font-bold">Источники Telegram</h1>
       
       <Card>
         <CardHeader>
-          <CardTitle>Добавить канал</CardTitle>
+          <CardTitle>Добавить источник</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="channel-url">Ссылка на канал или @username</Label>
+            <Label htmlFor="channel-input">Текст для сохранения</Label>
             <div className="flex gap-2">
               <Input
-                id="channel-url"
+                id="channel-input"
                 placeholder="Введите любой текст..."
                 value={channelInput}
                 onChange={(e) => setChannelInput(e.target.value)}
@@ -140,7 +138,7 @@ const TelegramChannels = () => {
               </Button>
             </div>
             <p className="text-sm text-muted-foreground">
-              Введите любой текст. Он будет сохранен как есть.
+              Введенный текст будет сохранен в базе данных как есть.
             </p>
           </div>
         </CardContent>
@@ -160,9 +158,6 @@ const TelegramChannels = () => {
                 </div>
                 <div className="flex-1 min-w-0">
                   <CardTitle className="text-lg truncate">{channel.channel_title}</CardTitle>
-                  <p className="text-sm text-muted-foreground truncate">
-                    {channel.channel_username}
-                  </p>
                 </div>
               </CardHeader>
               <CardContent className="flex justify-end mt-auto">
@@ -184,9 +179,9 @@ const TelegramChannels = () => {
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <Send className="h-16 w-16 text-muted-foreground mb-4" />
-            <h3 className="text-xl font-semibold mb-2">Нет добавленных каналов</h3>
+            <h3 className="text-xl font-semibold mb-2">Нет добавленных записей</h3>
             <p className="text-muted-foreground mb-6 text-center">
-              Добавьте Telegram каналы для мониторинга контента
+              Добавьте первую запись, чтобы увидеть ее здесь.
             </p>
           </CardContent>
         </Card>

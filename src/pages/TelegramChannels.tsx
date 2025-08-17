@@ -8,11 +8,6 @@ import { useToast } from "@/hooks/use-toast";
 import { Send, Plus, Trash2, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
-interface TelegramChannelInfo {
-  username: string;
-  title: string;
-}
-
 interface TelegramChannel {
   id: string;
   channel_username: string;
@@ -28,36 +23,6 @@ const fetchTelegramChannels = async (): Promise<TelegramChannel[]> => {
   return data;
 };
 
-const extractUsername = (input: string): string | null => {
-  try {
-    let username = input.trim();
-
-    if (username.startsWith("http://") || username.startsWith("https://")) {
-      const url = new URL(username);
-      if (url.hostname === "t.me" || url.hostname === "www.t.me") {
-        username = url.pathname.replace(/^\/+/, "");
-        if (username.startsWith('s/')) {
-          username = username.substring(2);
-        }
-      } else {
-        return null;
-      }
-    }
-
-    if (username.startsWith("@")) {
-      username = username.slice(1);
-    }
-
-    if (/^[a-zA-Z0-9_]{5,32}$/.test(username)) {
-      return username;
-    }
-
-    return null;
-  } catch (e) {
-    return null;
-  }
-};
-
 const TelegramChannels = () => {
   const [channelInput, setChannelInput] = useState("");
   const queryClient = useQueryClient();
@@ -69,19 +34,19 @@ const TelegramChannels = () => {
   });
 
   const addChannelMutation = useMutation({
-    mutationFn: async (channelInfo: TelegramChannelInfo) => {
+    mutationFn: async (rawInput: string) => {
       const { data, error } = await supabase
         .from('telegram_channels')
         .insert({
-          channel_username: `@${channelInfo.username}`,
-          channel_title: channelInfo.title,
+          channel_username: rawInput,
+          channel_title: rawInput,
         })
         .select()
         .single();
 
       if (error) {
         if (error.code === '23505') { // Unique constraint violation
-          throw new Error("Этот канал уже добавлен.");
+          throw new Error("Такая запись уже существует.");
         }
         throw error;
       }
@@ -129,27 +94,12 @@ const TelegramChannels = () => {
     if (!channelInput.trim()) {
       toast({
         title: "Ошибка",
-        description: "Пожалуйста, введите ссылку на канал или его @username",
+        description: "Поле не может быть пустым.",
         variant: "destructive",
       });
       return;
     }
-
-    const username = extractUsername(channelInput);
-
-    if (username) {
-      const channelInfo: TelegramChannelInfo = {
-        username: username,
-        title: username,
-      };
-      addChannelMutation.mutate(channelInfo);
-    } else {
-      toast({
-        title: "Неверный формат",
-        description: "Пожалуйста, введите корректную ссылку на канал или его @username.",
-        variant: "destructive",
-      });
-    }
+    addChannelMutation.mutate(channelInput);
   };
 
   const isLoading = addChannelMutation.isPending || deleteChannelMutation.isPending;
@@ -168,7 +118,7 @@ const TelegramChannels = () => {
             <div className="flex gap-2">
               <Input
                 id="channel-url"
-                placeholder="https://t.me/durov или @durov"
+                placeholder="Введите любой текст..."
                 value={channelInput}
                 onChange={(e) => setChannelInput(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleAddChannel()}
@@ -190,7 +140,7 @@ const TelegramChannels = () => {
               </Button>
             </div>
             <p className="text-sm text-muted-foreground">
-              Введите публичную ссылку на Telegram канал или его имя пользователя (с @ или без).
+              Введите любой текст. Он будет сохранен как есть.
             </p>
           </div>
         </CardContent>

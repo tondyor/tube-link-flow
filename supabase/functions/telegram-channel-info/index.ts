@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
@@ -9,23 +10,19 @@ function extractUsername(input: string): string | null {
   try {
     let username = input.trim();
 
-    // Remove protocol if present
     if (username.startsWith("http://") || username.startsWith("https://")) {
       const url = new URL(username);
-      // Accept only t.me domain
       if (url.hostname === "t.me" || url.hostname === "www.t.me") {
-        username = url.pathname.replace(/^\/+/, ""); // remove leading slashes
+        username = url.pathname.replace(/^\/+/, "");
       } else {
         return null;
       }
     }
 
-    // Remove leading @ if present
     if (username.startsWith("@")) {
       username = username.slice(1);
     }
 
-    // Validate username format: Telegram usernames can have letters, numbers, underscores, 5-32 chars
     if (/^[a-zA-Z0-9_]{5,32}$/.test(username)) {
       return username;
     }
@@ -52,7 +49,6 @@ async function fetchTelegramChannelData(username: string) {
 
     const html = await response.text();
 
-    // Extract Open Graph meta tags
     const titleMatch = html.match(/<meta property="og:title" content="([^"]+)"/i);
     const descriptionMatch = html.match(/<meta property="og:description" content="([^"]+)"/i);
     const imageMatch = html.match(/<meta property="og:image" content="([^"]+)"/i);
@@ -62,7 +58,6 @@ async function fetchTelegramChannelData(username: string) {
     const image = imageMatch ? imageMatch[1].trim() : null;
 
     if (!title) {
-      // Channel probably not public or doesn't exist
       return null;
     }
 

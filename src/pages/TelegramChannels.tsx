@@ -8,55 +8,47 @@ import { useToast } from "@/hooks/use-toast";
 import { Send, Plus, Trash2, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
-interface TelegramChannel {
+interface Source {
   id: string;
-  channel_title: string;
+  name: string;
 }
 
-const fetchTelegramChannels = async (): Promise<TelegramChannel[]> => {
+const fetchSources = async (): Promise<Source[]> => {
   const { data, error } = await supabase
     .from('telegram_channels')
-    .select('id, channel_title')
+    .select('id, name')
     .order('created_at', { ascending: false });
   if (error) throw new Error(error.message);
   return data;
 };
 
 const TelegramChannels = () => {
-  const [channelInput, setChannelInput] = useState("");
+  const [sourceInput, setSourceInput] = useState("");
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  const { data: channels = [], isLoading: isLoadingChannels } = useQuery({
-    queryKey: ['telegramChannels'],
-    queryFn: fetchTelegramChannels,
+  const { data: sources = [], isLoading: isLoadingSources } = useQuery({
+    queryKey: ['textSources'],
+    queryFn: fetchSources,
   });
 
-  const addChannelMutation = useMutation({
+  const addSourceMutation = useMutation({
     mutationFn: async (rawInput: string) => {
       const { data, error } = await supabase
         .from('telegram_channels')
-        .insert({
-          channel_title: rawInput,
-        })
+        .insert({ name: rawInput })
         .select()
         .single();
-
-      if (error) {
-        if (error.code === '23505') { // Unique constraint violation
-          throw new Error("Такая запись уже существует.");
-        }
-        throw error;
-      }
+      if (error) throw error;
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['telegramChannels'] });
+      queryClient.invalidateQueries({ queryKey: ['textSources'] });
       toast({
-        title: "Запись добавлена",
+        title: "Источник добавлен",
         description: "Текст успешно сохранен.",
       });
-      setChannelInput("");
+      setSourceInput("");
     },
     onError: (error: Error) => {
       toast({
@@ -67,15 +59,15 @@ const TelegramChannels = () => {
     },
   });
 
-  const deleteChannelMutation = useMutation({
-    mutationFn: async (channelId: string) => {
-      const { error } = await supabase.from('telegram_channels').delete().eq('id', channelId);
+  const deleteSourceMutation = useMutation({
+    mutationFn: async (sourceId: string) => {
+      const { error } = await supabase.from('telegram_channels').delete().eq('id', sourceId);
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['telegramChannels'] });
+      queryClient.invalidateQueries({ queryKey: ['textSources'] });
       toast({
-        title: "Запись удалена",
+        title: "Источник удален",
         description: "Запись успешно удалена.",
       });
     },
@@ -88,8 +80,8 @@ const TelegramChannels = () => {
     },
   });
 
-  const handleAddChannel = async () => {
-    if (!channelInput.trim()) {
+  const handleAddSource = async () => {
+    if (!sourceInput.trim()) {
       toast({
         title: "Ошибка",
         description: "Поле не может быть пустым.",
@@ -97,10 +89,10 @@ const TelegramChannels = () => {
       });
       return;
     }
-    addChannelMutation.mutate(channelInput);
+    addSourceMutation.mutate(sourceInput);
   };
 
-  const isLoading = addChannelMutation.isPending || deleteChannelMutation.isPending;
+  const isLoading = addSourceMutation.isPending || deleteSourceMutation.isPending;
 
   return (
     <div className="space-y-6">
@@ -112,18 +104,18 @@ const TelegramChannels = () => {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="channel-input">Текст для сохранения</Label>
+            <Label htmlFor="source-input">Текст для сохранения</Label>
             <div className="flex gap-2">
               <Input
-                id="channel-input"
+                id="source-input"
                 placeholder="Введите любой текст..."
-                value={channelInput}
-                onChange={(e) => setChannelInput(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleAddChannel()}
+                value={sourceInput}
+                onChange={(e) => setSourceInput(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleAddSource()}
                 disabled={isLoading}
               />
               <Button 
-                onClick={handleAddChannel} 
+                onClick={handleAddSource} 
                 disabled={isLoading}
                 className="flex items-center gap-2 w-32"
               >
@@ -144,28 +136,28 @@ const TelegramChannels = () => {
         </CardContent>
       </Card>
 
-      {isLoadingChannels ? (
+      {isLoadingSources ? (
         <div className="flex justify-center items-center py-12">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
-      ) : channels.length > 0 ? (
+      ) : sources.length > 0 ? (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {channels.map((channel) => (
-            <Card key={channel.id} className="flex flex-col">
+          {sources.map((source) => (
+            <Card key={source.id} className="flex flex-col">
               <CardHeader className="flex flex-row items-center gap-4">
                 <div className="bg-muted w-16 h-16 rounded-full flex items-center justify-center">
                   <Send className="h-8 w-8 text-muted-foreground" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <CardTitle className="text-lg truncate">{channel.channel_title}</CardTitle>
+                  <CardTitle className="text-lg truncate">{source.name}</CardTitle>
                 </div>
               </CardHeader>
               <CardContent className="flex justify-end mt-auto">
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => deleteChannelMutation.mutate(channel.id)}
-                  disabled={deleteChannelMutation.isPending}
+                  onClick={() => deleteSourceMutation.mutate(source.id)}
+                  disabled={deleteSourceMutation.isPending}
                   className="flex items-center gap-2"
                 >
                   <Trash2 className="h-4 w-4" />
